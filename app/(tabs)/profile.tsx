@@ -79,11 +79,21 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <Pressable style={styles.insightsCard} onPress={() => router.push('/insights')}>
+      <Pressable style={styles.insightsCard} onPress={() => router.push('/health')}>
         <Text variant="caption" color={colors.primary}>
           New
         </Text>
-        <Text variant="subtitle">Wardrobe insights</Text>
+        <Text variant="subtitle">Wardrobe Health</Text>
+        <Text variant="body" color={colors.muted}>
+          AI check: idle pieces, versatility scores, and closet gaps.
+        </Text>
+      </Pressable>
+
+      <Pressable
+        style={styles.secondaryCard}
+        onPress={() => router.push('/insights')}
+      >
+        <Text variant="subtitle">Wear insights</Text>
         <Text variant="body" color={colors.muted}>
           Most worn pieces, neglected items, and your category mix.
         </Text>
@@ -171,6 +181,15 @@ const styles = StyleSheet.create({
   insightsCard: {
     backgroundColor: colors.primaryMist,
     borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: 4,
+    marginBottom: spacing.sm,
+  },
+  secondaryCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: spacing.md,
     gap: 4,
     marginBottom: spacing.lg,

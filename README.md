@@ -73,6 +73,7 @@ npx serve dist
 - **Outfits** — list, create/edit from wardrobe pieces, mark as worn, delete
 - **Today** — “What should I wear?” stylist + wear history
 - **Insights** — most worn, neglected pieces, category/color mix
+- **Wardrobe Health** — AI-style check: utilization, versatility %, dormant items, closet gaps
 - Profile (editable style preferences feed the stylist; avatar later)
 
 AI recognition is **mocked** in Phase 1. Photos are copied into app storage so they still appear after save.
