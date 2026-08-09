@@ -18,7 +18,7 @@ import { colors, radii, spacing } from '@/constants/theme';
 
 export default function OutfitDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { outfits, getItemsForOutfit, deleteOutfit, updateOutfit } = useApp();
+  const { outfits, getItemsForOutfit, deleteOutfit, markOutfitWorn } = useApp();
   const insets = useSafeAreaInsets();
 
   const outfit = useMemo(
@@ -60,9 +60,7 @@ export default function OutfitDetailScreen() {
   };
 
   const onMarkWorn = async () => {
-    await updateOutfit(outfit.id, {
-      lastWornAt: new Date().toISOString(),
-    });
+    await markOutfitWorn(outfit.id);
   };
 
   return (

@@ -13,7 +13,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: {
           fontFamily: 'PlusJakartaSans_600SemiBold',
-          fontSize: 11,
+          fontSize: 10,
           marginBottom: Platform.OS === 'web' ? 8 : 0,
         },
         tabBarStyle: styles.tabBar,
@@ -26,7 +26,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'shirt' : 'shirt-outline'}
-              size={22}
+              size={20}
               color={color}
             />
           ),
@@ -39,7 +39,20 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'sparkles' : 'sparkles-outline'}
-              size={22}
+              size={20}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="today"
+        options={{
+          title: 'Today',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'sunny' : 'sunny-outline'}
+              size={20}
               color={color}
             />
           ),
@@ -49,7 +62,7 @@ export default function TabLayout() {
         name="add"
         options={{
           title: 'Add',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ focused }) => (
             <View
               style={StyleSheet.flatten([
                 styles.addIcon,
@@ -58,7 +71,7 @@ export default function TabLayout() {
             >
               <Ionicons
                 name="add"
-                size={24}
+                size={22}
                 color={focused ? colors.white : colors.primary}
               />
             </View>
@@ -72,7 +85,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'person' : 'person-outline'}
-              size={22}
+              size={20}
               color={color}
             />
           ),
@@ -90,8 +103,8 @@ const styles = StyleSheet.create({
     paddingTop: 6,
   },
   addIcon: {
-    width: 34,
-    height: 34,
+    width: 32,
+    height: 32,
     borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
