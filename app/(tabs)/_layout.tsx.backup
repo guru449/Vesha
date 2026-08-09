@@ -44,7 +44,7 @@ export default function TabLayout() {
         options={{
           title: 'Add',
           tabBarIcon: ({ color, focused }) => (
-            <View style={StyleSheet.flatten([styles.addIcon, focused && styles.addIconActive])}>
+            <View style={[styles.addIcon, focused && styles.addIconActive]}>
               <Ionicons
                 name="add"
                 size={24}

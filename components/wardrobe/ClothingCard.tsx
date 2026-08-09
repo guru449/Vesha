@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Link } from 'expo-router';
+import { router } from 'expo-router';
 import Animated, {
   FadeInDown,
   useAnimatedStyle,
@@ -26,33 +26,32 @@ export function ClothingCard({ item, index }: Props) {
   }));
 
   return (
-    <Link href={`/item/${item.id}`} asChild>
-      <AnimatedPressable
-        entering={FadeInDown.delay(index * 60).springify().damping(18)}
-        onPressIn={() => {
-          scale.value = withSpring(0.97, { damping: 16, stiffness: 280 });
-        }}
-        onPressOut={() => {
-          scale.value = withSpring(1, { damping: 14, stiffness: 240 });
-        }}
-        style={[styles.card, animatedStyle]}
-      >
-        <Image
-          source={{ uri: item.imageUri }}
-          style={styles.image}
-          contentFit="cover"
-          transition={280}
-        />
-        <View style={styles.meta}>
-          <Text variant="bodyMedium" numberOfLines={1}>
-            {item.name}
-          </Text>
-          <Text variant="caption" color={colors.muted} numberOfLines={1}>
-            {item.attributes.color} · {item.attributes.category}
-          </Text>
-        </View>
-      </AnimatedPressable>
-    </Link>
+    <AnimatedPressable
+      entering={FadeInDown.delay(index * 60).springify().damping(18)}
+      onPress={() => router.push(`/item/${item.id}`)}
+      onPressIn={() => {
+        scale.value = withSpring(0.97, { damping: 16, stiffness: 280 });
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1, { damping: 14, stiffness: 240 });
+      }}
+      style={[styles.card, animatedStyle]}
+    >
+      <Image
+        source={{ uri: item.imageUri }}
+        style={styles.image}
+        contentFit="cover"
+        transition={280}
+      />
+      <View style={styles.meta}>
+        <Text variant="bodyMedium" numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text variant="caption" color={colors.muted} numberOfLines={1}>
+          {item.attributes.color} · {item.attributes.category}
+        </Text>
+      </View>
+    </AnimatedPressable>
   );
 }
 
