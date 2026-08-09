@@ -62,7 +62,7 @@ npm run export:web   # outputs ./dist
 npx serve dist
 ```
 
-## Phase 1 screens
+## Phase 1 + Outfit Builder screens
 
 - Wardrobe grid with search + category filters
 - Add item (camera/library)
@@ -70,6 +70,7 @@ npx serve dist
   - **Add photo as-is** → saves immediately to wardrobe
   - **Enter details manually** / AI no-match fallback
 - Item detail (view/edit/delete)
+- **Outfits** — list, create/edit from wardrobe pieces, mark as worn, delete
 - Profile (height/weight saved; avatar later)
 
 AI recognition is **mocked** in Phase 1. Photos are copied into app storage so they still appear after save.

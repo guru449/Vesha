@@ -86,6 +86,29 @@ export default function RootLayout() {
                 animation: 'slide_from_bottom',
               }}
             />
+            <Stack.Screen
+              name="outfit/create"
+              options={{
+                headerShown: true,
+                headerTitle: 'Create outfit',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.bg },
+                headerShadowVisible: false,
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }}
+            />
+            <Stack.Screen
+              name="outfit/[id]"
+              options={{
+                headerShown: true,
+                headerTitle: 'Outfit',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.bg },
+                headerShadowVisible: false,
+                animation: 'slide_from_right',
+              }}
+            />
           </Stack>
         </PhoneShell>
       </AppProvider>

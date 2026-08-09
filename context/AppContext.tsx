@@ -9,14 +9,16 @@ import {
   type ReactNode,
 } from 'react';
 
+import { mockOutfits } from '@/data/mockOutfits';
 import { demoUser, mockWardrobe } from '@/data/mockWardrobe';
-import type { ClothingItem, UserProfile } from '@/data/types';
+import type { ClothingItem, Outfit, UserProfile } from '@/data/types';
 
 type AppContextValue = {
   ready: boolean;
   isAuthenticated: boolean;
   user: UserProfile | null;
   items: ClothingItem[];
+  outfits: Outfit[];
   pendingImageUri: string | null;
   setPendingImageUri: (uri: string | null) => void;
   /** Dev-friendly: always signed in as demo user. Real auth comes later. */
@@ -27,11 +29,16 @@ type AppContextValue = {
   addItem: (item: ClothingItem) => Promise<void>;
   updateItem: (id: string, patch: Partial<ClothingItem>) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
+  addOutfit: (outfit: Outfit) => Promise<void>;
+  updateOutfit: (id: string, patch: Partial<Outfit>) => Promise<void>;
+  deleteOutfit: (id: string) => Promise<void>;
+  getItemsForOutfit: (outfit: Outfit) => ClothingItem[];
 };
 
 const STORAGE_KEYS = {
   auth: 'vesha.auth',
   items: 'vesha.items',
+  outfits: 'vesha.outfits',
   user: 'vesha.user',
 };
 
@@ -42,14 +49,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [items, setItems] = useState<ClothingItem[]>(mockWardrobe);
+  const [outfits, setOutfits] = useState<Outfit[]>(mockOutfits);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [storedUser, storedItems] = await Promise.all([
+        const [storedUser, storedItems, storedOutfits] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.user),
           AsyncStorage.getItem(STORAGE_KEYS.items),
+          AsyncStorage.getItem(STORAGE_KEYS.outfits),
         ]);
 
         // Auth deferred: boot straight into a demo session for easy testing.
@@ -63,6 +72,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         if (storedItems) {
           setItems(JSON.parse(storedItems));
+        }
+        if (storedOutfits) {
+          setOutfits(JSON.parse(storedOutfits));
         }
       } finally {
         setReady(true);
@@ -94,7 +106,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    // Keep auth light for now — signing out still leaves demo entry available.
     setIsAuthenticated(false);
     setUser(null);
     await AsyncStorage.setItem(STORAGE_KEYS.auth, '0');
@@ -140,7 +151,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
       void AsyncStorage.setItem(STORAGE_KEYS.items, JSON.stringify(next));
       return next;
     });
+    // Keep outfits consistent when a piece is removed.
+    setOutfits((current) => {
+      const next = current.map((outfit) => ({
+        ...outfit,
+        itemIds: outfit.itemIds.filter((itemId) => itemId !== id),
+        updatedAt: new Date().toISOString(),
+      }));
+      void AsyncStorage.setItem(STORAGE_KEYS.outfits, JSON.stringify(next));
+      return next;
+    });
   }, []);
+
+  const addOutfit = useCallback(async (outfit: Outfit) => {
+    setOutfits((current) => {
+      const next = [outfit, ...current];
+      void AsyncStorage.setItem(STORAGE_KEYS.outfits, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const updateOutfit = useCallback(async (id: string, patch: Partial<Outfit>) => {
+    setOutfits((current) => {
+      const next = current.map((outfit) =>
+        outfit.id === id
+          ? {
+              ...outfit,
+              ...patch,
+              updatedAt: new Date().toISOString(),
+            }
+          : outfit,
+      );
+      void AsyncStorage.setItem(STORAGE_KEYS.outfits, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const deleteOutfit = useCallback(async (id: string) => {
+    setOutfits((current) => {
+      const next = current.filter((outfit) => outfit.id !== id);
+      void AsyncStorage.setItem(STORAGE_KEYS.outfits, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const getItemsForOutfit = useCallback(
+    (outfit: Outfit) =>
+      outfit.itemIds
+        .map((id) => items.find((item) => item.id === id))
+        .filter((item): item is ClothingItem => Boolean(item)),
+    [items],
+  );
 
   const value = useMemo(
     () => ({
@@ -148,6 +209,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       isAuthenticated,
       user,
       items,
+      outfits,
       pendingImageUri,
       setPendingImageUri,
       enterApp,
@@ -157,12 +219,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addItem,
       updateItem,
       deleteItem,
+      addOutfit,
+      updateOutfit,
+      deleteOutfit,
+      getItemsForOutfit,
     }),
     [
       ready,
       isAuthenticated,
       user,
       items,
+      outfits,
       pendingImageUri,
       enterApp,
       signIn,
@@ -171,6 +238,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addItem,
       updateItem,
       deleteItem,
+      addOutfit,
+      updateOutfit,
+      deleteOutfit,
+      getItemsForOutfit,
     ],
   );
 
