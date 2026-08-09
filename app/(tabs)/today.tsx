@@ -22,6 +22,7 @@ const OCCASIONS = ['Casual', 'Work', 'Brunch', 'Evening', 'Travel'];
 
 export default function TodayScreen() {
   const {
+    user,
     items,
     outfits,
     wearHistory,
@@ -50,6 +51,7 @@ export default function TodayScreen() {
       items,
       outfits,
       wearHistory,
+      stylePreferences: user?.stylePreferences ?? [],
       limit: 3,
     });
     setSuggestions(next);

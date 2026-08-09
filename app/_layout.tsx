@@ -109,6 +109,17 @@ export default function RootLayout() {
                 animation: 'slide_from_right',
               }}
             />
+            <Stack.Screen
+              name="insights"
+              options={{
+                headerShown: true,
+                headerTitle: 'Insights',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.bg },
+                headerShadowVisible: false,
+                animation: 'slide_from_right',
+              }}
+            />
           </Stack>
         </PhoneShell>
       </AppProvider>
