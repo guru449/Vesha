@@ -36,6 +36,26 @@ export type Outfit = {
   itemIds: string[];
   createdAt: string;
   updatedAt: string;
-  /** Optional note for wear tracking later */
+  /** Most recent wear timestamp (also mirrored in wearHistory) */
   lastWornAt?: string;
+};
+
+export type WearHistoryEntry = {
+  id: string;
+  outfitId: string;
+  outfitName: string;
+  itemIds: string[];
+  wornAt: string;
+  occasion?: string;
+};
+
+export type StylistSuggestion = {
+  id: string;
+  title: string;
+  occasion: string;
+  itemIds: string[];
+  /** Human-readable why this was suggested */
+  reason: string;
+  /** If based on a saved outfit */
+  sourceOutfitId?: string;
 };

@@ -11,7 +11,13 @@ import {
 
 import { mockOutfits } from '@/data/mockOutfits';
 import { demoUser, mockWardrobe } from '@/data/mockWardrobe';
-import type { ClothingItem, Outfit, UserProfile } from '@/data/types';
+import { mockWearHistory } from '@/data/mockWearHistory';
+import type {
+  ClothingItem,
+  Outfit,
+  UserProfile,
+  WearHistoryEntry,
+} from '@/data/types';
 
 type AppContextValue = {
   ready: boolean;
@@ -19,9 +25,9 @@ type AppContextValue = {
   user: UserProfile | null;
   items: ClothingItem[];
   outfits: Outfit[];
+  wearHistory: WearHistoryEntry[];
   pendingImageUri: string | null;
   setPendingImageUri: (uri: string | null) => void;
-  /** Dev-friendly: always signed in as demo user. Real auth comes later. */
   enterApp: () => Promise<void>;
   signIn: (email: string, name?: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -32,13 +38,16 @@ type AppContextValue = {
   addOutfit: (outfit: Outfit) => Promise<void>;
   updateOutfit: (id: string, patch: Partial<Outfit>) => Promise<void>;
   deleteOutfit: (id: string) => Promise<void>;
+  markOutfitWorn: (outfitId: string, snapshot?: Outfit) => Promise<void>;
   getItemsForOutfit: (outfit: Outfit) => ClothingItem[];
+  getItemsByIds: (ids: string[]) => ClothingItem[];
 };
 
 const STORAGE_KEYS = {
   auth: 'vesha.auth',
   items: 'vesha.items',
   outfits: 'vesha.outfits',
+  wearHistory: 'vesha.wearHistory',
   user: 'vesha.user',
 };
 
@@ -50,18 +59,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [items, setItems] = useState<ClothingItem[]>(mockWardrobe);
   const [outfits, setOutfits] = useState<Outfit[]>(mockOutfits);
+  const [wearHistory, setWearHistory] =
+    useState<WearHistoryEntry[]>(mockWearHistory);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [storedUser, storedItems, storedOutfits] = await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEYS.user),
-          AsyncStorage.getItem(STORAGE_KEYS.items),
-          AsyncStorage.getItem(STORAGE_KEYS.outfits),
-        ]);
+        const [storedUser, storedItems, storedOutfits, storedHistory] =
+          await Promise.all([
+            AsyncStorage.getItem(STORAGE_KEYS.user),
+            AsyncStorage.getItem(STORAGE_KEYS.items),
+            AsyncStorage.getItem(STORAGE_KEYS.outfits),
+            AsyncStorage.getItem(STORAGE_KEYS.wearHistory),
+          ]);
 
-        // Auth deferred: boot straight into a demo session for easy testing.
         const nextUser = storedUser ? JSON.parse(storedUser) : demoUser;
         setUser(nextUser);
         setIsAuthenticated(true);
@@ -70,12 +82,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           [STORAGE_KEYS.user, JSON.stringify(nextUser)],
         ]);
 
-        if (storedItems) {
-          setItems(JSON.parse(storedItems));
-        }
-        if (storedOutfits) {
-          setOutfits(JSON.parse(storedOutfits));
-        }
+        if (storedItems) setItems(JSON.parse(storedItems));
+        if (storedOutfits) setOutfits(JSON.parse(storedOutfits));
+        if (storedHistory) setWearHistory(JSON.parse(storedHistory));
       } finally {
         setReady(true);
       }
@@ -151,7 +160,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       void AsyncStorage.setItem(STORAGE_KEYS.items, JSON.stringify(next));
       return next;
     });
-    // Keep outfits consistent when a piece is removed.
     setOutfits((current) => {
       const next = current.map((outfit) => ({
         ...outfit,
@@ -195,9 +203,59 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const markOutfitWorn = useCallback(
+    async (outfitId: string, snapshot?: Outfit) => {
+      const outfit =
+        snapshot || outfits.find((item) => item.id === outfitId);
+      if (!outfit) return;
+
+      const wornAt = new Date().toISOString();
+
+      setOutfits((current) => {
+        const exists = current.some((item) => item.id === outfitId);
+        const next = exists
+          ? current.map((item) =>
+              item.id === outfitId
+                ? { ...item, lastWornAt: wornAt, updatedAt: wornAt }
+                : item,
+            )
+          : [{ ...outfit, lastWornAt: wornAt, updatedAt: wornAt }, ...current];
+        void AsyncStorage.setItem(STORAGE_KEYS.outfits, JSON.stringify(next));
+        return next;
+      });
+
+      const entry: WearHistoryEntry = {
+        id: `wear-${Date.now()}`,
+        outfitId: outfit.id,
+        outfitName: outfit.name,
+        itemIds: outfit.itemIds,
+        wornAt,
+        occasion: outfit.occasion,
+      };
+
+      setWearHistory((current) => {
+        const next = [entry, ...current];
+        void AsyncStorage.setItem(
+          STORAGE_KEYS.wearHistory,
+          JSON.stringify(next),
+        );
+        return next;
+      });
+    },
+    [outfits],
+  );
+
   const getItemsForOutfit = useCallback(
     (outfit: Outfit) =>
       outfit.itemIds
+        .map((id) => items.find((item) => item.id === id))
+        .filter((item): item is ClothingItem => Boolean(item)),
+    [items],
+  );
+
+  const getItemsByIds = useCallback(
+    (ids: string[]) =>
+      ids
         .map((id) => items.find((item) => item.id === id))
         .filter((item): item is ClothingItem => Boolean(item)),
     [items],
@@ -210,6 +268,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user,
       items,
       outfits,
+      wearHistory,
       pendingImageUri,
       setPendingImageUri,
       enterApp,
@@ -222,7 +281,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addOutfit,
       updateOutfit,
       deleteOutfit,
+      markOutfitWorn,
       getItemsForOutfit,
+      getItemsByIds,
     }),
     [
       ready,
@@ -230,6 +291,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user,
       items,
       outfits,
+      wearHistory,
       pendingImageUri,
       enterApp,
       signIn,
@@ -241,7 +303,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addOutfit,
       updateOutfit,
       deleteOutfit,
+      markOutfitWorn,
       getItemsForOutfit,
+      getItemsByIds,
     ],
   );
 

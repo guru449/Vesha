@@ -9,6 +9,7 @@ export const mockOutfits: Outfit[] = [
     itemIds: ['item-1', 'item-2', 'item-4', 'item-5'],
     createdAt: '2026-08-07T10:00:00Z',
     updatedAt: '2026-08-07T10:00:00Z',
+    lastWornAt: '2026-08-07T11:00:00Z',
   },
   {
     id: 'outfit-2',
@@ -17,5 +18,6 @@ export const mockOutfits: Outfit[] = [
     itemIds: ['item-7', 'item-2', 'item-4'],
     createdAt: '2026-08-08T09:00:00Z',
     updatedAt: '2026-08-08T09:00:00Z',
+    lastWornAt: '2026-08-08T09:30:00Z',
   },
 ];
