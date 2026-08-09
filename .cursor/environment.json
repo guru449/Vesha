@@ -4,7 +4,7 @@
   "terminals": [
     {
       "name": "dev",
-      "command": "npm run dev"
+      "command": "npm run web"
     }
   ]
 }
