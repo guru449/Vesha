@@ -219,7 +219,9 @@ function buildUtilizationFindings(
         } regularly worn.`,
         detail:
           threshold >= REGULAR_WEAR_MIN
-            ? `${unused.length} piece${unused.length === 1 ? '' : 's'} in ${category} get little rotation. Try building an outfit around them on Today.`
+            ? `${unused.length} piece${unused.length === 1 ? '' : 's'} in ${category} ${
+                unused.length === 1 ? 'gets' : 'get'
+              } little rotation. Try building an outfit around them on Today.`
             : `Some ${category.toLowerCase()} have never made it into a logged outfit. Give them a turn this week.`,
         metricLabel: `${activeCount}/${list.length} active`,
         itemIds: unused.map((item) => item.id),
