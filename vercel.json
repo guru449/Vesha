@@ -7,8 +7,8 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/((?!_expo/|assets/).*)",
-      "destination": "/index.html"
+      "source": "/:path*",
+      "destination": "/"
     }
   ]
 }
