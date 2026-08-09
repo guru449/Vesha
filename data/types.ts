@@ -28,3 +28,14 @@ export type UserProfile = {
   weightKg?: number;
   stylePreferences: string[];
 };
+
+export type Outfit = {
+  id: string;
+  name: string;
+  occasion?: string;
+  itemIds: string[];
+  createdAt: string;
+  updatedAt: string;
+  /** Optional note for wear tracking later */
+  lastWornAt?: string;
+};
