@@ -1,0 +1,167 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useMemo, useState } from 'react';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
+
+import { Chip } from '@/components/ui/Chip';
+import { Screen } from '@/components/ui/Screen';
+import { Text } from '@/components/ui/Text';
+import { ClothingCard } from '@/components/wardrobe/ClothingCard';
+import { useApp } from '@/context/AppContext';
+import { categories, colors, radii, spacing, type Category } from '@/constants/theme';
+
+export default function WardrobeScreen() {
+  const { items, user } = useApp();
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState<Category>('All');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return items.filter((item) => {
+      const matchesCategory =
+        category === 'All' || item.attributes.category === category;
+      const haystack = [
+        item.name,
+        item.attributes.color,
+        item.attributes.style,
+        item.attributes.material,
+        item.attributes.occasion,
+        item.attributes.category,
+      ]
+        .join(' ')
+        .toLowerCase();
+      const matchesQuery = !q || haystack.includes(q);
+      return matchesCategory && matchesQuery;
+    });
+  }, [items, query, category]);
+
+  return (
+    <Screen padded={false}>
+      <View style={styles.header}>
+        <Animated.View entering={FadeIn.duration(450)}>
+          <Text variant="caption" color={colors.muted}>
+            {user?.name ? `${user.name}'s closet` : 'Your closet'}
+          </Text>
+          <Text variant="hero">Wardrobe</Text>
+        </Animated.View>
+        <Text variant="body" color={colors.muted}>
+          {items.length} pieces · tap any item to edit
+        </Text>
+
+        <View style={styles.search}>
+          <Ionicons name="search" size={18} color={colors.muted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search color, style, fabric…"
+            placeholderTextColor={colors.muted}
+            style={styles.searchInput}
+          />
+          {query ? (
+            <Pressable onPress={() => setQuery('')} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={colors.muted} />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+
+      <FlatList
+        horizontal
+        data={[...categories]}
+        keyExtractor={(item) => item}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filters}
+        style={styles.filterList}
+        renderItem={({ item }) => (
+          <Chip
+            label={item}
+            selected={category === item}
+            onPress={() => setCategory(item)}
+          />
+        )}
+      />
+
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.grid}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Text variant="subtitle" center>
+              No pieces match
+            </Text>
+            <Text variant="body" color={colors.muted} center>
+              Try another category or clear your search.
+            </Text>
+          </View>
+        }
+        renderItem={({ item, index }) => (
+          <View style={styles.cell}>
+            <ClothingCard item={item} index={index} />
+          </View>
+        )}
+      />
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    gap: spacing.sm,
+  },
+  search: {
+    marginTop: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    minHeight: 48,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    fontSize: 15,
+    color: colors.ink,
+    paddingVertical: 12,
+  },
+  filterList: {
+    flexGrow: 0,
+    marginTop: spacing.md,
+  },
+  filters: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  grid: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+  row: {
+    gap: spacing.md,
+  },
+  cell: {
+    flex: 1,
+  },
+  empty: {
+    paddingTop: spacing.xxl,
+    gap: spacing.sm,
+  },
+});

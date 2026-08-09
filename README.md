@@ -1,40 +1,43 @@
-# Vesha
+# Vesha — Digital Wardrobe
 
-A minimal notes app starter built with [Next.js](https://nextjs.org) (App Router),
-TypeScript, and Tailwind CSS. It demonstrates a full request/response flow: the UI
-reads and writes notes through an API route (`/api/notes`).
+Cross-platform (iOS & Android) digital wardrobe app built with **Expo + React Native**.
+
+Phase 1 MVP focus: registration/profile, clothing upload, AI-assisted tagging with user confirmation, and wardrobe browse/search/filter/edit/delete.
+
+## Theme
+
+Soft sage closet aesthetic — calm greens, cool neutrals, Fraunces + Plus Jakarta Sans. Designed to feel friendly and easy to scan on mobile.
 
 ## Requirements
 
 - Node.js 22+
-- npm (a `package-lock.json` is committed)
+- npm
+- Expo Go (optional, for device testing) or iOS Simulator / Android Emulator
 
 ## Getting started
 
 ```bash
-npm ci        # install dependencies from the lockfile
-npm run dev   # start the dev server at http://localhost:3000
+npm ci
+npm run web      # browser preview (useful for UI reviews)
+npm start       # Expo dev server (scan QR for iOS/Android)
+npm run ios     # iOS simulator (macOS)
+npm run android # Android emulator
 ```
 
-Open http://localhost:3000 and add a note. New notes are posted to the
-`/api/notes` route and rendered back in the list.
+## Phase 1 screens
 
-## Available scripts
+- Welcome / Login / Register
+- Wardrobe grid with search + category filters
+- Add item (camera/library) → AI identify → confirm/correct attributes
+- Item detail (view/edit/delete)
+- Profile
 
-- `npm run dev` — start the development server.
-- `npm run build` — create a production build.
-- `npm start` — run the production server (after `npm run build`).
-- `npm run lint` — run ESLint.
-- `npm run typecheck` — type-check with the TypeScript compiler.
+AI recognition is **mocked** in Phase 1 so the UX flow can be validated before the real Phase 2 recognition engine.
 
 ## Project structure
 
-- `src/app/page.tsx` — the notes UI (client component).
-- `src/app/api/notes/route.ts` — GET/POST API handlers.
-- `src/lib/notes.ts` — in-memory notes store (swap for a database as needed).
-
-## Notes storage
-
-The starter keeps notes in an in-memory array, so they reset when the server
-restarts. Replace `src/lib/notes.ts` with a real data layer when you need
-persistence.
+- `app/` — Expo Router screens
+- `components/` — UI + wardrobe components
+- `constants/theme.ts` — design tokens
+- `context/AppContext.tsx` — auth + wardrobe state
+- `data/` — types + mock wardrobe / AI stub
