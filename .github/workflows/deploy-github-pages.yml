@@ -1,9 +1,11 @@
 name: Deploy investor demo (GitHub Pages)
 
+# Only run on main after GitHub Pages is enabled in repo settings.
+# Vercel is the primary investor demo host — this is optional.
 on:
-  push:
-    branches: [main, cursor/investor-web-deploy-16c6]
   workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
