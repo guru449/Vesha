@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { colors } from '@/constants/theme';
 
 export default function Index() {
-  const { ready } = useApp();
+  const { ready, isAuthenticated } = useApp();
 
   if (!ready) {
     return (
@@ -15,7 +15,12 @@ export default function Index() {
     );
   }
 
-  // Auth deferred — always enter the wardrobe for easy testing.
+  // Local mode auto-authenticates with the demo profile on launch.
+  // Cloud mode requires a real Supabase session.
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)/welcome" />;
+  }
+
   return <Redirect href="/(tabs)/wardrobe" />;
 }
 

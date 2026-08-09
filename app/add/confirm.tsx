@@ -18,7 +18,7 @@ import {
 } from '@/data/mockWardrobe';
 import type { ClothingCategory } from '@/constants/theme';
 import { colors, radii, spacing } from '@/constants/theme';
-import { persistWardrobeImage } from '@/lib/persistImage';
+import { saveWardrobeImage } from '@/lib/uploadImage';
 
 const CATEGORY_OPTIONS: ClothingCategory[] = [
   'Tops',
@@ -34,7 +34,7 @@ type Mode = 'ai' | 'unmatched' | 'manual';
 export default function ConfirmAttributesScreen() {
   const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
   const mode = (modeParam as Mode) || 'ai';
-  const { addItem, pendingImageUri } = useApp();
+  const { addItem, pendingImageUri, user } = useApp();
   const insets = useSafeAreaInsets();
 
   const imageUri = pendingImageUri;
@@ -94,7 +94,7 @@ export default function ConfirmAttributesScreen() {
   }) => {
     setSaving(true);
     try {
-      const persisted = await persistWardrobeImage(imageUri);
+      const persisted = await saveWardrobeImage(imageUri, user?.id);
       await addItem({
         id: `item-${Date.now()}`,
         name: options?.asPhotoOnly

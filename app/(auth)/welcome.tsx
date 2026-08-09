@@ -11,7 +11,8 @@ import { useApp } from '@/context/AppContext';
 import { colors, radii, spacing } from '@/constants/theme';
 
 export default function WelcomeScreen() {
-  const { enterApp } = useApp();
+  const { enterApp, backendMode } = useApp();
+  const isCloud = backendMode === 'cloud';
 
   const continueDemo = async () => {
     await enterApp();
@@ -65,10 +66,23 @@ export default function WelcomeScreen() {
             entering={FadeInUp.delay(320).duration(650)}
             style={styles.actions}
           >
-            <Button label="Continue to wardrobe" onPress={continueDemo} />
-            <Link href="/(auth)/login" asChild>
-              <Button label="Sign in (optional for now)" variant="onDark" />
-            </Link>
+            {isCloud ? (
+              <>
+                <Link href="/(auth)/register" asChild>
+                  <Button label="Create account" />
+                </Link>
+                <Link href="/(auth)/login" asChild>
+                  <Button label="Sign in" variant="onDark" />
+                </Link>
+              </>
+            ) : (
+              <>
+                <Button label="Continue to wardrobe" onPress={continueDemo} />
+                <Link href="/(auth)/login" asChild>
+                  <Button label="Sign in (optional for now)" variant="onDark" />
+                </Link>
+              </>
+            )}
           </Animated.View>
         </View>
       </SafeAreaView>
