@@ -17,8 +17,6 @@ type Props = {
   index: number;
 };
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 export function ClothingCard({ item, index }: Props) {
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
@@ -26,36 +24,45 @@ export function ClothingCard({ item, index }: Props) {
   }));
 
   return (
-    <AnimatedPressable
+    <Animated.View
       entering={FadeInDown.delay(index * 60).springify().damping(18)}
-      onPress={() => router.push(`/item/${item.id}`)}
-      onPressIn={() => {
-        scale.value = withSpring(0.97, { damping: 16, stiffness: 280 });
-      }}
-      onPressOut={() => {
-        scale.value = withSpring(1, { damping: 14, stiffness: 240 });
-      }}
-      style={[styles.card, animatedStyle]}
+      style={styles.flex}
     >
-      <Image
-        source={{ uri: item.imageUri }}
-        style={styles.image}
-        contentFit="cover"
-        transition={280}
-      />
-      <View style={styles.meta}>
-        <Text variant="bodyMedium" numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text variant="caption" color={colors.muted} numberOfLines={1}>
-          {item.attributes.color} · {item.attributes.category}
-        </Text>
-      </View>
-    </AnimatedPressable>
+      <Animated.View style={[styles.card, animatedStyle]}>
+        <Pressable
+          onPress={() => router.push(`/item/${item.id}`)}
+          onPressIn={() => {
+            scale.value = withSpring(0.97, { damping: 16, stiffness: 280 });
+          }}
+          onPressOut={() => {
+            scale.value = withSpring(1, { damping: 14, stiffness: 240 });
+          }}
+          style={styles.pressable}
+        >
+          <Image
+            source={{ uri: item.imageUri }}
+            style={styles.image}
+            contentFit="cover"
+            transition={280}
+          />
+          <View style={styles.meta}>
+            <Text variant="bodyMedium" numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text variant="caption" color={colors.muted} numberOfLines={1}>
+              {item.attributes.color} · {item.attributes.category}
+            </Text>
+          </View>
+        </Pressable>
+      </Animated.View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   card: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -63,6 +70,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  pressable: {
+    flex: 1,
   },
   image: {
     width: '100%',
