@@ -1,4 +1,4 @@
-import type { ClothingItem, UserProfile } from '@/data/types';
+import type { ClothingAttributes, ClothingItem, UserProfile } from '@/data/types';
 
 export const demoUser: UserProfile = {
   id: 'user-1',
@@ -141,14 +141,46 @@ export const mockWardrobe: ClothingItem[] = [
   },
 ];
 
-/** Simulated AI recognition result from an uploaded photo. */
-export function mockAiIdentify(imageUri: string) {
+export type AiIdentifyResult =
+  | {
+      matched: true;
+      imageUri: string;
+      suggestedName: string;
+      confidence: number;
+      attributes: ClothingAttributes;
+    }
+  | {
+      matched: false;
+      imageUri: string;
+      confidence: number;
+      reason: string;
+    };
+
+/**
+ * Simulated AI recognition for Phase 1.
+ * Pass forceNoMatch to exercise the "couldn't identify" happy path.
+ */
+export function mockAiIdentify(
+  imageUri: string,
+  options?: { forceNoMatch?: boolean },
+): AiIdentifyResult {
+  if (options?.forceNoMatch) {
+    return {
+      matched: false,
+      imageUri,
+      confidence: 0.28,
+      reason:
+        'No clear clothing item was detected. You can still add this photo to your wardrobe.',
+    };
+  }
+
   return {
+    matched: true,
     imageUri,
     suggestedName: 'Soft Cotton Blouse',
     confidence: 0.87,
     attributes: {
-      category: 'Tops' as const,
+      category: 'Tops',
       color: 'Ivory',
       pattern: 'Solid',
       material: 'Cotton',
@@ -157,3 +189,12 @@ export function mockAiIdentify(imageUri: string) {
     },
   };
 }
+
+export const emptyManualAttributes: ClothingAttributes = {
+  category: 'Tops',
+  color: 'Unknown',
+  pattern: 'Unknown',
+  material: 'Unknown',
+  style: 'Unknown',
+  occasion: 'Everyday',
+};

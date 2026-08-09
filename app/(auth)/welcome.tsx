@@ -1,15 +1,23 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
+import { useApp } from '@/context/AppContext';
 import { colors, radii, spacing } from '@/constants/theme';
 
 export default function WelcomeScreen() {
+  const { enterApp } = useApp();
+
+  const continueDemo = async () => {
+    await enterApp();
+    router.replace('/(tabs)/wardrobe');
+  };
+
   return (
     <View style={styles.root}>
       <Image
@@ -57,11 +65,9 @@ export default function WelcomeScreen() {
             entering={FadeInUp.delay(320).duration(650)}
             style={styles.actions}
           >
-            <Link href="/(auth)/register" asChild>
-              <Button label="Create account" />
-            </Link>
+            <Button label="Continue to wardrobe" onPress={continueDemo} />
             <Link href="/(auth)/login" asChild>
-              <Button label="I already have an account" variant="onDark" />
+              <Button label="Sign in (optional for now)" variant="onDark" />
             </Link>
           </Animated.View>
         </View>
