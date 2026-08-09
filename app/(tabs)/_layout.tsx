@@ -1,17 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 
-import { useApp } from '@/context/AppContext';
 import { colors, radii } from '@/constants/theme';
 
 export default function TabLayout() {
-  const { ready, isAuthenticated } = useApp();
-
-  if (ready && !isAuthenticated) {
-    return <Redirect href="/(auth)/welcome" />;
-  }
-
   return (
     <Tabs
       screenOptions={{
@@ -44,7 +37,12 @@ export default function TabLayout() {
         options={{
           title: 'Add',
           tabBarIcon: ({ color, focused }) => (
-            <View style={StyleSheet.flatten([styles.addIcon, focused && styles.addIconActive])}>
+            <View
+              style={StyleSheet.flatten([
+                styles.addIcon,
+                focused && styles.addIconActive,
+              ])}
+            >
               <Ionicons
                 name="add"
                 size={24}

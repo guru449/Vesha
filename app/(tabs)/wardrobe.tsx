@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -14,7 +15,13 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { ClothingCard } from '@/components/wardrobe/ClothingCard';
 import { useApp } from '@/context/AppContext';
-import { categories, colors, radii, spacing, type Category } from '@/constants/theme';
+import {
+  categories,
+  colors,
+  radii,
+  spacing,
+  type Category,
+} from '@/constants/theme';
 
 export default function WardrobeScreen() {
   const { items, user } = useApp();
@@ -41,8 +48,8 @@ export default function WardrobeScreen() {
     });
   }, [items, query, category]);
 
-  return (
-    <Screen padded={false}>
+  const header = (
+    <View>
       <View style={styles.header}>
         <Animated.View entering={FadeIn.duration(450)}>
           <Text variant="caption" color={colors.muted}>
@@ -51,7 +58,7 @@ export default function WardrobeScreen() {
           <Text variant="hero">Wardrobe</Text>
         </Animated.View>
         <Text variant="body" color={colors.muted}>
-          {items.length} pieces · tap any item to edit
+          {filtered.length} of {items.length} pieces · tap any item to edit
         </Text>
 
         <View style={styles.search}>
@@ -71,22 +78,27 @@ export default function WardrobeScreen() {
         </View>
       </View>
 
-      <FlatList
+      <ScrollView
         horizontal
-        data={[...categories]}
-        keyExtractor={(item) => item}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filters}
         style={styles.filterList}
-        renderItem={({ item }) => (
+        contentContainerStyle={styles.filters}
+        keyboardShouldPersistTaps="handled"
+      >
+        {categories.map((item) => (
           <Chip
+            key={item}
             label={item}
             selected={category === item}
             onPress={() => setCategory(item)}
           />
-        )}
-      />
+        ))}
+      </ScrollView>
+    </View>
+  );
 
+  return (
+    <Screen padded={false}>
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
@@ -94,6 +106,8 @@ export default function WardrobeScreen() {
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.grid}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={header}
+        stickyHeaderIndices={[]}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text variant="subtitle" center>
@@ -142,20 +156,21 @@ const styles = StyleSheet.create({
   filterList: {
     flexGrow: 0,
     marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   filters: {
     paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
+    paddingRight: spacing.xl,
+    alignItems: 'center',
     paddingBottom: spacing.sm,
   },
   grid: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
     paddingBottom: spacing.xxl,
-    gap: spacing.md,
   },
   row: {
     gap: spacing.md,
+    marginBottom: spacing.md,
   },
   cell: {
     flex: 1,

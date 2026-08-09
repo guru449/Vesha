@@ -1,6 +1,5 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, Text as RNText } from 'react-native';
 
-import { Text } from '@/components/ui/Text';
 import { colors, radii, spacing } from '@/constants/theme';
 
 type Props = {
@@ -17,25 +16,28 @@ export function Chip({ label, selected, onPress }: Props) {
       accessibilityRole="button"
       accessibilityState={{ selected }}
     >
-      <Text
-        variant="caption"
-        color={selected ? colors.white : colors.inkSoft}
-        style={styles.label}
+      <RNText
+        numberOfLines={1}
+        style={[styles.label, selected ? styles.labelSelected : styles.labelIdle]}
       >
         {label}
-      </Text>
+      </RNText>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   chip: {
-    paddingHorizontal: spacing.md,
+    flexGrow: 0,
+    flexShrink: 0,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: radii.pill,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    marginRight: spacing.sm,
   },
   selected: {
     backgroundColor: colors.primary,
@@ -43,5 +45,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontSize: 13,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  labelIdle: {
+    color: colors.inkSoft,
+  },
+  labelSelected: {
+    color: colors.white,
   },
 });

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text as RNText, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
@@ -62,13 +62,15 @@ export function SelectChips({ label, value, options, onChange }: SelectRowProps)
               onPress={() => onChange(option)}
               style={[styles.option, selected && styles.optionSelected]}
             >
-              <Text
-                variant="caption"
-                color={selected ? colors.white : colors.inkSoft}
-                style={styles.optionLabel}
+              <RNText
+                numberOfLines={1}
+                style={[
+                  styles.optionLabel,
+                  { color: selected ? colors.white : colors.inkSoft },
+                ]}
               >
                 {option}
-              </Text>
+              </RNText>
             </Pressable>
           );
         })}
@@ -108,5 +110,7 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontSize: 13,
+    includeFontPadding: false,
   },
 });

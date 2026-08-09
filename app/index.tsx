@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { colors } from '@/constants/theme';
 
 export default function Index() {
-  const { ready, isAuthenticated } = useApp();
+  const { ready } = useApp();
 
   if (!ready) {
     return (
@@ -15,11 +15,8 @@ export default function Index() {
     );
   }
 
-  if (isAuthenticated) {
-    return <Redirect href="/(tabs)/wardrobe" />;
-  }
-
-  return <Redirect href="/(auth)/welcome" />;
+  // Auth deferred — always enter the wardrobe for easy testing.
+  return <Redirect href="/(tabs)/wardrobe" />;
 }
 
 const styles = StyleSheet.create({

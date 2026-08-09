@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -11,7 +10,7 @@ import { useApp } from '@/context/AppContext';
 import { colors, radii, spacing } from '@/constants/theme';
 
 export default function ProfileScreen() {
-  const { user, items, updateProfile, signOut } = useApp();
+  const { user, items, updateProfile } = useApp();
   const [name, setName] = useState(user?.name ?? '');
   const [height, setHeight] = useState(
     user?.heightCm ? String(user.heightCm) : '',
@@ -31,17 +30,12 @@ export default function ProfileScreen() {
     setTimeout(() => setSaved(false), 1600);
   };
 
-  const onSignOut = async () => {
-    await signOut();
-    router.replace('/(auth)/welcome');
-  };
-
   return (
     <Screen scroll>
       <Animated.View entering={FadeInDown.duration(450)} style={styles.header}>
         <Text variant="hero">Profile</Text>
         <Text variant="body" color={colors.muted}>
-          Basic details for Phase 1. Avatar & try-on come later.
+          Demo profile for easy testing. Full sign-up / auth comes later.
         </Text>
       </Animated.View>
 
@@ -61,9 +55,7 @@ export default function ProfileScreen() {
           </Text>
         </View>
         <View style={styles.stat}>
-          <Text variant="title">
-            {user?.stylePreferences?.length ?? 0}
-          </Text>
+          <Text variant="title">{user?.stylePreferences?.length ?? 0}</Text>
           <Text variant="caption" color={colors.muted}>
             Preferences
           </Text>
@@ -83,13 +75,26 @@ export default function ProfileScreen() {
           keyboardType="numeric"
           value={height}
           onChangeText={setHeight}
+          hint="Saved for later avatar sizing"
         />
         <Input
           label="Weight (kg)"
           keyboardType="numeric"
           value={weight}
           onChangeText={setWeight}
+          hint="Saved for later avatar sizing"
         />
+
+        <View style={styles.laterCard}>
+          <Text variant="caption" color={colors.primary}>
+            Coming later
+          </Text>
+          <Text variant="bodyMedium">Avatar & photo upload</Text>
+          <Text variant="body" color={colors.muted}>
+            We’ll use height, weight, and an optional full-body photo to build
+            your try-on avatar in a later phase.
+          </Text>
+        </View>
 
         {user?.stylePreferences?.length ? (
           <View style={styles.prefs}>
@@ -103,7 +108,6 @@ export default function ProfileScreen() {
         ) : null}
 
         <Button label={saved ? 'Saved' : 'Save profile'} onPress={onSave} />
-        <Button label="Sign out" variant="ghost" onPress={onSignOut} />
       </View>
     </Screen>
   );
@@ -137,5 +141,11 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     padding: spacing.md,
     gap: 4,
+  },
+  laterCard: {
+    backgroundColor: colors.primaryMist,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    gap: 6,
   },
 });
