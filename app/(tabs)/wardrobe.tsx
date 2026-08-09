@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -27,8 +27,6 @@ export default function WardrobeScreen() {
   const { items, user } = useApp();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<Category>('All');
-  const filterScrollRef = useRef<ScrollView>(null);
-  const chipXPositions = useRef<Record<string, number>>({});
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -49,19 +47,6 @@ export default function WardrobeScreen() {
       return matchesCategory && matchesQuery;
     });
   }, [items, query, category]);
-
-  const selectCategory = (next: Category) => {
-    setCategory(next);
-    const x = chipXPositions.current[next];
-    if (typeof x === 'number' && filterScrollRef.current) {
-      // Keep selected chip near the left with a little breathing room,
-      // without jumping so far that neighbors disappear.
-      filterScrollRef.current.scrollTo({
-        x: Math.max(0, x - spacing.lg),
-        animated: true,
-      });
-    }
-  };
 
   const header = (
     <View>
@@ -94,7 +79,6 @@ export default function WardrobeScreen() {
       </View>
 
       <ScrollView
-        ref={filterScrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filterList}
@@ -102,18 +86,12 @@ export default function WardrobeScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {categories.map((item) => (
-          <View
+          <Chip
             key={item}
-            onLayout={(event) => {
-              chipXPositions.current[item] = event.nativeEvent.layout.x;
-            }}
-          >
-            <Chip
-              label={item}
-              selected={category === item}
-              onPress={() => selectCategory(item)}
-            />
-          </View>
+            label={item}
+            selected={category === item}
+            onPress={() => setCategory(item)}
+          />
         ))}
       </ScrollView>
     </View>
