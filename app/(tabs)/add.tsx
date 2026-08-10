@@ -104,15 +104,14 @@ export default function AddItemScreen() {
     if (!imageUri) return;
     setBusy('ai');
     setPendingImageUri(imageUri);
-    // Simulate AI recognition latency for Phase 1 UX.
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    setBusy('idle');
+    // Recognition runs on the confirm screen (live AI or mock fallback).
     router.push({
       pathname: '/add/confirm',
       params: {
         mode: forceNoMatch ? 'unmatched' : 'ai',
       },
     });
+    setBusy('idle');
   };
 
   const addAsIs = async () => {
