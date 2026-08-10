@@ -99,6 +99,7 @@ npx serve dist
 - **Outfits** — list, create/edit from wardrobe pieces, mark as worn, delete
 - **Today** — “What should I wear?” stylist + wear history
 - **Insights** — most worn, neglected pieces, category/color mix
+- **Wardrobe Health** — AI-style check: utilization, versatility %, dormant items, closet gaps
 - Profile (style preferences, sign out; avatar later)
 - **Supabase foundation** — auth, Postgres sync, Storage uploads
 
