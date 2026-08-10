@@ -99,6 +99,18 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
+              name="outfit/tweak"
+              options={{
+                headerShown: true,
+                headerTitle: 'Tweak look',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.bg },
+                headerShadowVisible: false,
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }}
+            />
+            <Stack.Screen
               name="outfit/[id]"
               options={{
                 headerShown: true,
