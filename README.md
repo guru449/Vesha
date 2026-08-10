@@ -111,7 +111,7 @@ npx serve dist
 - Item detail (view/edit/delete, **Wear today** per piece)
 - Wear history for outfits **and** individual items
 - **Wear log** — compact list of days you logged looks (through today); **log a forgotten look** for today or a past day
-- **Outfits** — list, create/edit, **pin favorites** (sort to top + Today boost), **Wear today** / **Re-wear**, delete, **share look**
+- **Outfits** — list, **search** (name / occasion / piece), create/edit, **pin favorites**, **Wear today** / **Re-wear**, delete, **share look**
 - **Today** — weather-aware “What should I wear?” stylist (clearer reasons, neglected-piece boost, better empty guidance); **Tweak look** on new combos before wear/save + wear history
 - **Insights** — most worn, neglected pieces, category/color mix
 - **Wardrobe Health** — AI-style check: utilization, versatility %, dormant items, closet gaps
