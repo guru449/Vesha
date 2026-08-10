@@ -1,7 +1,12 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
@@ -12,12 +17,13 @@ import {
   SelectChips,
 } from '@/components/wardrobe/AttributeField';
 import { useApp } from '@/context/AppContext';
-import {
-  emptyManualAttributes,
-  mockAiIdentify,
-} from '@/data/mockWardrobe';
+import { emptyManualAttributes } from '@/data/mockWardrobe';
 import type { ClothingCategory } from '@/constants/theme';
 import { colors, radii, spacing } from '@/constants/theme';
+import {
+  identifyClothing,
+  type AiIdentifyResult,
+} from '@/lib/aiIdentify';
 import { saveWardrobeImage } from '@/lib/uploadImage';
 
 const CATEGORY_OPTIONS: ClothingCategory[] = [
@@ -39,43 +45,19 @@ export default function ConfirmAttributesScreen() {
 
   const imageUri = pendingImageUri;
 
-  const suggestion = useMemo(() => {
-    if (!imageUri) return null;
-    if (mode === 'manual') {
-      return {
-        matched: false as const,
-        imageUri,
-        confidence: 0,
-        reason: 'Add your own details for this piece.',
-      };
-    }
-    return mockAiIdentify(imageUri, { forceNoMatch: mode === 'unmatched' });
-  }, [imageUri, mode]);
-
-  const matched = suggestion?.matched === true;
-
-  const [name, setName] = useState(
-    matched ? suggestion.suggestedName : 'New piece',
-  );
+  const [suggestion, setSuggestion] = useState<AiIdentifyResult | null>(null);
+  const [aiSource, setAiSource] = useState<'ai' | 'mock' | null>(null);
+  const [analyzing, setAnalyzing] = useState(mode === 'ai' || mode === 'unmatched');
+  const [name, setName] = useState('New piece');
   const [category, setCategory] = useState<ClothingCategory>(
-    matched ? suggestion.attributes.category : emptyManualAttributes.category,
+    emptyManualAttributes.category,
   );
-  const [color, setColor] = useState(
-    matched ? suggestion.attributes.color : emptyManualAttributes.color,
-  );
-  const [pattern, setPattern] = useState(
-    matched ? suggestion.attributes.pattern : emptyManualAttributes.pattern,
-  );
-  const [material, setMaterial] = useState(
-    matched ? suggestion.attributes.material : emptyManualAttributes.material,
-  );
-  const [style, setStyle] = useState(
-    matched ? suggestion.attributes.style : emptyManualAttributes.style,
-  );
-  const [occasion, setOccasion] = useState(
-    matched ? suggestion.attributes.occasion : emptyManualAttributes.occasion,
-  );
-  const [showForm, setShowForm] = useState(matched || mode === 'manual');
+  const [color, setColor] = useState(emptyManualAttributes.color);
+  const [pattern, setPattern] = useState(emptyManualAttributes.pattern);
+  const [material, setMaterial] = useState(emptyManualAttributes.material);
+  const [style, setStyle] = useState(emptyManualAttributes.style);
+  const [occasion, setOccasion] = useState(emptyManualAttributes.occasion);
+  const [showForm, setShowForm] = useState(mode === 'manual');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -84,9 +66,59 @@ export default function ConfirmAttributesScreen() {
     }
   }, [imageUri]);
 
-  if (!imageUri || !suggestion) {
+  useEffect(() => {
+    if (!imageUri) return;
+
+    if (mode === 'manual') {
+      setSuggestion({
+        matched: false,
+        imageUri,
+        confidence: 0,
+        reason: 'Add your own details for this piece.',
+      });
+      setAiSource(null);
+      setAnalyzing(false);
+      setShowForm(true);
+      return;
+    }
+
+    let cancelled = false;
+    setAnalyzing(true);
+
+    (async () => {
+      const result = await identifyClothing(imageUri, {
+        forceNoMatch: mode === 'unmatched',
+        forceMock: mode === 'unmatched',
+      });
+      if (cancelled) return;
+
+      setSuggestion(result);
+      setAiSource(result.source);
+      if (result.matched) {
+        setName(result.suggestedName);
+        setCategory(result.attributes.category);
+        setColor(result.attributes.color);
+        setPattern(result.attributes.pattern);
+        setMaterial(result.attributes.material);
+        setStyle(result.attributes.style);
+        setOccasion(result.attributes.occasion);
+        setShowForm(true);
+      } else {
+        setShowForm(false);
+      }
+      setAnalyzing(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [imageUri, mode]);
+
+  if (!imageUri) {
     return null;
   }
+
+  const matched = suggestion?.matched === true;
 
   const saveItem = async (options?: {
     asPhotoOnly?: boolean;
@@ -134,11 +166,21 @@ export default function ConfirmAttributesScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {matched ? (
+        {analyzing ? (
+          <View style={styles.banner}>
+            <ActivityIndicator color={colors.primary} />
+            <Text variant="caption" color={colors.primary}>
+              Analyzing your piece…
+            </Text>
+            <Text variant="body" color={colors.muted}>
+              AI is reading category, color, fabric, and style.
+            </Text>
+          </View>
+        ) : matched && suggestion ? (
           <View style={styles.banner}>
             <Text variant="caption" color={colors.primary}>
-              AI suggestion · {Math.round(suggestion.confidence * 100)}%
-              confidence
+              {aiSource === 'ai' ? 'AI suggestion' : 'Demo suggestion'} ·{' '}
+              {Math.round(suggestion.confidence * 100)}% confidence
             </Text>
             <Text variant="body" color={colors.muted}>
               Review and correct anything that looks off before saving.
@@ -152,7 +194,7 @@ export default function ConfirmAttributesScreen() {
                 : 'AI couldn’t identify this clearly'}
             </Text>
             <Text variant="body" color={colors.muted}>
-              {suggestion.matched === false
+              {suggestion && suggestion.matched === false
                 ? suggestion.reason
                 : 'Add the photo anyway, or fill in details yourself.'}
             </Text>
@@ -165,7 +207,13 @@ export default function ConfirmAttributesScreen() {
           contentFit="cover"
         />
 
-        {!matched && !showForm ? (
+        {analyzing ? (
+          <View style={styles.analyzingBlock}>
+            <Text variant="body" color={colors.muted}>
+              Hang tight — this usually takes a couple of seconds.
+            </Text>
+          </View>
+        ) : !matched && !showForm ? (
           <View style={styles.actions}>
             <Button
               label={saving ? 'Saving…' : 'Add photo anyway'}
@@ -236,7 +284,8 @@ export default function ConfirmAttributesScreen() {
               label={saving ? 'Saving…' : 'Save to wardrobe'}
               onPress={() =>
                 saveItem({
-                  withAiConfidence: matched ? suggestion.confidence : undefined,
+                  withAiConfidence:
+                    matched && suggestion ? suggestion.confidence : undefined,
                 })
               }
               disabled={saving}
@@ -270,7 +319,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryMist,
     borderRadius: radii.md,
     padding: spacing.md,
-    gap: 4,
+    gap: 6,
   },
   bannerWarn: {
     backgroundColor: colors.accentSoft,
@@ -280,6 +329,10 @@ const styles = StyleSheet.create({
     aspectRatio: 1.2,
     borderRadius: radii.lg,
     backgroundColor: colors.surfaceMuted,
+  },
+  analyzingBlock: {
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
   },
   actions: {
     gap: spacing.sm,
