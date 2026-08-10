@@ -1,5 +1,6 @@
 import type { WearHistoryEntry } from '@/data/types';
 
+/** Spread across months so the wear calendar feels populated. */
 export const mockWearHistory: WearHistoryEntry[] = [
   {
     id: 'wear-1',
@@ -53,5 +54,57 @@ export const mockWearHistory: WearHistoryEntry[] = [
     wornAt: '2026-08-05T18:00:00Z',
     occasion: 'Everyday',
     source: 'item',
+  },
+  {
+    id: 'wear-7',
+    outfitId: 'outfit-1',
+    outfitName: 'Weekend brunch',
+    itemIds: ['item-1', 'item-2', 'item-4', 'item-5'],
+    wornAt: '2026-08-03T10:15:00Z',
+    occasion: 'Brunch',
+    source: 'outfit',
+  },
+  {
+    id: 'wear-8',
+    outfitName: 'Denim Jacket',
+    itemIds: ['item-8'],
+    wornAt: '2026-08-09T16:40:00Z',
+    occasion: 'Casual',
+    source: 'item',
+  },
+  {
+    id: 'wear-9',
+    outfitId: 'outfit-2',
+    outfitName: 'Smart casual Friday',
+    itemIds: ['item-7', 'item-2', 'item-4'],
+    wornAt: '2026-07-18T09:00:00Z',
+    occasion: 'Work',
+    source: 'outfit',
+  },
+  {
+    id: 'wear-10',
+    outfitId: 'outfit-1',
+    outfitName: 'Weekend brunch',
+    itemIds: ['item-3', 'item-4', 'item-5'],
+    wornAt: '2026-07-12T13:20:00Z',
+    occasion: 'Brunch',
+    source: 'outfit',
+  },
+  {
+    id: 'wear-11',
+    outfitName: 'Canvas Tote',
+    itemIds: ['item-6'],
+    wornAt: '2026-06-22T11:00:00Z',
+    occasion: 'Travel',
+    source: 'item',
+  },
+  {
+    id: 'wear-12',
+    outfitId: 'outfit-2',
+    outfitName: 'Smart casual Friday',
+    itemIds: ['item-7', 'item-2', 'item-4'],
+    wornAt: '2026-06-06T08:45:00Z',
+    occasion: 'Work',
+    source: 'outfit',
   },
 ];

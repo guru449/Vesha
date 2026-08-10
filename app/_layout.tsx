@@ -131,6 +131,17 @@ export default function RootLayout() {
                 animation: 'slide_from_right',
               }}
             />
+            <Stack.Screen
+              name="calendar"
+              options={{
+                headerShown: true,
+                headerTitle: 'Wear calendar',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.bg },
+                headerShadowVisible: false,
+                animation: 'slide_from_right',
+              }}
+            />
           </Stack>
         </PhoneShell>
       </AppProvider>
