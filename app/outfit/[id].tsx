@@ -181,7 +181,7 @@ export default function OutfitDetailScreen() {
             }
           />
           <Button
-            label={outfit.lastWornAt ? 'Mark worn again' : 'Mark as worn'}
+            label={outfit.lastWornAt ? 'Re-wear' : 'Wear today'}
             variant="secondary"
             onPress={onMarkWorn}
           />

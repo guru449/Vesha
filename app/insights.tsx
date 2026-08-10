@@ -95,7 +95,7 @@ export default function InsightsScreen() {
           <Text variant="subtitle">Most worn</Text>
           {insights.mostWorn.length === 0 ? (
             <Text variant="body" color={colors.muted}>
-              Mark outfits as worn to unlock this.
+              Log wears with Wear today / Re-wear to unlock this.
             </Text>
           ) : (
             insights.mostWorn.map((stat) => (

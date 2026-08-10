@@ -349,7 +349,7 @@ export default function TodayScreen() {
 
         {recentHistory.length === 0 ? (
           <Text variant="body" color={colors.muted}>
-            Nothing worn yet. Mark an outfit as worn to build history.
+            Nothing worn yet. Tap Wear today on a look to build history.
           </Text>
         ) : (
           recentHistory.slice(0, 8).map((entry) => {
