@@ -18,11 +18,37 @@ Soft sage closet aesthetic — calm greens, cool neutrals, Fraunces + Plus Jakar
 
 ```bash
 npm ci
-npm run web      # browser preview
-npm start       # Expo Go / device
+cp .env.example .env   # optional — see Backend below
+npm run web            # browser preview
+npm start              # Expo Go / device
 ```
 
-The app opens straight into the wardrobe (auth deferred for easy testing).
+Without Supabase env vars, the app runs in **local demo mode** (auto-enters wardrobe, AsyncStorage only).
+
+## Backend (Supabase) — auth, sync, cloud photos
+
+Vesha supports an optional Supabase backend. When configured, login/register become real, wardrobe data syncs per user, and photos upload to Storage.
+
+1. Create a free project at [supabase.com](https://supabase.com)
+2. Copy **Project URL** + **anon public key** from **Settings → API** into `.env`:
+
+```bash
+EXPO_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+```
+
+3. In Supabase → **SQL Editor**, run the full script in [`supabase/schema.sql`](supabase/schema.sql)  
+   (tables, RLS, profile trigger, `wardrobe-images` storage bucket)
+4. Auth → **Providers**: Email enabled  
+   For easy testing, turn **off** “Confirm email” under Auth → Providers → Email
+5. Restart Expo (`npm start`) so env vars load
+
+| Mode | When | Behavior |
+|------|------|----------|
+| **Local demo** | Env vars missing | Skip auth, mock wardrobe, photos on device |
+| **Cloud** | Env vars set | Real auth, empty closet per user, cloud photo URLs |
+
+Profile shows which mode is active (`Cloud sync · Supabase` vs `Local demo`).
 
 ## Investor web demo (free hosting)
 
@@ -30,8 +56,8 @@ The app opens straight into the wardrobe (auth deferred for easy testing).
 
 1. Go to [vercel.com/new](https://vercel.com/new)
 2. Import the `guru449/Vesha` GitHub repo
-3. Leave defaults (uses `vercel.json`) → **Deploy**
-4. Share the `*.vercel.app` link with investors
+3. Add the two `EXPO_PUBLIC_SUPABASE_*` env vars if you want cloud mode in production
+4. Deploy (uses `vercel.json`)
 
 Or from your machine after `npm i -g vercel`:
 
@@ -62,7 +88,7 @@ npm run export:web   # outputs ./dist
 npx serve dist
 ```
 
-## Phase 1 + Outfit Builder screens
+## Features
 
 - Wardrobe grid with search + category filters
 - Add item (camera/library)
@@ -74,15 +100,20 @@ npx serve dist
 - **Today** — “What should I wear?” stylist + wear history
 - **Insights** — most worn, neglected pieces, category/color mix
 - **Wardrobe Health** — AI-style check: utilization, versatility %, dormant items, closet gaps
-- Profile (editable style preferences feed the stylist; avatar later)
+- Profile (style preferences, sign out; avatar later)
+- **Supabase foundation** — auth, Postgres sync, Storage uploads
 
-AI recognition is **mocked** in Phase 1. Photos are copied into app storage so they still appear after save.
+AI recognition is still **mocked**. Real vision tagging is next after backend credentials are live.
 
 ## Project structure
 
 - `app/` — Expo Router screens
 - `components/` — UI + wardrobe components
 - `constants/theme.ts` — design tokens
-- `context/AppContext.tsx` — auth + wardrobe state
+- `context/AppContext.tsx` — auth + wardrobe state (local or cloud)
 - `data/` — types + mock wardrobe / AI stub
-- `lib/persistImage.ts` — persist camera/library photos
+- `lib/supabase.ts` — Supabase client
+- `lib/cloudData.ts` — cloud CRUD
+- `lib/uploadImage.ts` — Storage upload + local fallback
+- `lib/persistImage.ts` — local file copy for demo mode
+- `supabase/schema.sql` — database + storage setup

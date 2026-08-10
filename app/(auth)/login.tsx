@@ -1,6 +1,6 @@
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Button } from '@/components/ui/Button';
@@ -11,16 +11,31 @@ import { useApp } from '@/context/AppContext';
 import { colors, spacing } from '@/constants/theme';
 
 export default function LoginScreen() {
-  const { signIn } = useApp();
-  const [email, setEmail] = useState('ava@vesha.app');
-  const [password, setPassword] = useState('demo1234');
+  const { signIn, backendMode } = useApp();
+  const [email, setEmail] = useState(
+    backendMode === 'local' ? 'ava@vesha.app' : '',
+  );
+  const [password, setPassword] = useState(
+    backendMode === 'local' ? 'demo1234' : '',
+  );
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const showError = (message: string) => {
+    setError(message);
+    if (Platform.OS !== 'web') {
+      Alert.alert('Sign in failed', message);
+    }
+  };
 
   const onLogin = async () => {
     setLoading(true);
+    setError(null);
     try {
-      await signIn(email.trim() || 'ava@vesha.app');
+      await signIn(email.trim(), password);
       router.replace('/(tabs)/wardrobe');
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Please try again.');
     } finally {
       setLoading(false);
     }
@@ -35,7 +50,9 @@ export default function LoginScreen() {
           </Text>
           <Text variant="title">Welcome back</Text>
           <Text variant="body" color={colors.muted}>
-            Sign in to open your digital wardrobe.
+            {backendMode === 'cloud'
+              ? 'Sign in to open your synced digital wardrobe.'
+              : 'Sign in to open your digital wardrobe.'}
           </Text>
         </View>
 
@@ -55,10 +72,15 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             placeholder="Your password"
           />
+          {error ? (
+            <Text variant="caption" color={colors.danger}>
+              {error}
+            </Text>
+          ) : null}
           <Button
             label={loading ? 'Signing in…' : 'Sign in'}
             onPress={onLogin}
-            disabled={loading}
+            disabled={loading || !email.trim() || !password}
           />
         </View>
 
@@ -69,7 +91,7 @@ export default function LoginScreen() {
           <Link href="/(auth)/register" asChild>
             <Pressable>
               <Text variant="bodyMedium" color={colors.primary}>
-                Create an account
+                Create account
               </Text>
             </Pressable>
           </Link>
@@ -82,7 +104,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    paddingTop: spacing.xxl,
+    paddingTop: spacing.xl,
     gap: spacing.xl,
   },
   header: {
@@ -93,6 +115,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
     alignItems: 'center',
   },

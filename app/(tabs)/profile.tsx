@@ -13,7 +13,15 @@ import { colors, radii, spacing } from '@/constants/theme';
 import { STYLE_PREFERENCE_OPTIONS } from '@/lib/insights';
 
 export default function ProfileScreen() {
-  const { user, items, outfits, wearHistory, updateProfile } = useApp();
+  const {
+    user,
+    items,
+    outfits,
+    wearHistory,
+    updateProfile,
+    signOut,
+    backendMode,
+  } = useApp();
   const [name, setName] = useState(user?.name ?? '');
   const [height, setHeight] = useState(
     user?.heightCm ? String(user.heightCm) : '',
@@ -54,8 +62,15 @@ export default function ProfileScreen() {
       <Animated.View entering={FadeInDown.duration(450)} style={styles.header}>
         <Text variant="hero">Profile</Text>
         <Text variant="body" color={colors.muted}>
-          Demo profile for easy testing. Preferences power Today’s stylist.
+          Preferences power Today’s stylist.
         </Text>
+        <View style={styles.modeChip}>
+          <Text variant="caption" color={colors.primary}>
+            {backendMode === 'cloud'
+              ? 'Cloud sync · Supabase'
+              : 'Local demo · device only'}
+          </Text>
+        </View>
       </Animated.View>
 
       <View style={styles.stats}>
@@ -153,6 +168,14 @@ export default function ProfileScreen() {
         </View>
 
         <Button label={saved ? 'Saved' : 'Save profile'} onPress={onSave} />
+        <Button
+          label="Sign out"
+          variant="secondary"
+          onPress={async () => {
+            await signOut();
+            router.replace('/(auth)/welcome');
+          }}
+        />
       </View>
     </Screen>
   );
@@ -163,6 +186,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingTop: spacing.md,
     marginBottom: spacing.lg,
+  },
+  modeChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primaryMist,
+    borderRadius: radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   stats: {
     flexDirection: 'row',

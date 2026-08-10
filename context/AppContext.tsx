@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -18,9 +19,17 @@ import type {
   UserProfile,
   WearHistoryEntry,
 } from '@/data/types';
+import * as cloud from '@/lib/cloudData';
+import {
+  getBackendMode,
+  getSupabase,
+  isSupabaseConfigured,
+  type BackendMode,
+} from '@/lib/supabase';
 
 type AppContextValue = {
   ready: boolean;
+  backendMode: BackendMode;
   isAuthenticated: boolean;
   user: UserProfile | null;
   items: ClothingItem[];
@@ -28,8 +37,15 @@ type AppContextValue = {
   wearHistory: WearHistoryEntry[];
   pendingImageUri: string | null;
   setPendingImageUri: (uri: string | null) => void;
+  /** Local demo only — enter without credentials */
   enterApp: () => Promise<void>;
-  signIn: (email: string, name?: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (input: {
+    email: string;
+    password: string;
+    name: string;
+    heightCm?: number;
+  }) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (patch: Partial<UserProfile>) => Promise<void>;
   addItem: (item: ClothingItem) => Promise<void>;
@@ -53,70 +69,256 @@ const STORAGE_KEYS = {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+async function loadLocalState(): Promise<{
+  user: UserProfile;
+  items: ClothingItem[];
+  outfits: Outfit[];
+  wearHistory: WearHistoryEntry[];
+}> {
+  const [storedUser, storedItems, storedOutfits, storedHistory] =
+    await Promise.all([
+      AsyncStorage.getItem(STORAGE_KEYS.user),
+      AsyncStorage.getItem(STORAGE_KEYS.items),
+      AsyncStorage.getItem(STORAGE_KEYS.outfits),
+      AsyncStorage.getItem(STORAGE_KEYS.wearHistory),
+    ]);
+
+  return {
+    user: storedUser ? JSON.parse(storedUser) : demoUser,
+    items: storedItems ? JSON.parse(storedItems) : mockWardrobe,
+    outfits: storedOutfits ? JSON.parse(storedOutfits) : mockOutfits,
+    wearHistory: storedHistory ? JSON.parse(storedHistory) : mockWearHistory,
+  };
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
+  const backendMode = getBackendMode();
   const [ready, setReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [items, setItems] = useState<ClothingItem[]>(mockWardrobe);
-  const [outfits, setOutfits] = useState<Outfit[]>(mockOutfits);
-  const [wearHistory, setWearHistory] =
-    useState<WearHistoryEntry[]>(mockWearHistory);
+  const [items, setItems] = useState<ClothingItem[]>([]);
+  const [outfits, setOutfits] = useState<Outfit[]>([]);
+  const [wearHistory, setWearHistory] = useState<WearHistoryEntry[]>([]);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  const userIdRef = useRef<string | null>(null);
+
+  const hydrateCloudUser = useCallback(async (userId: string, email: string) => {
+    let profile = await cloud.fetchProfile(userId);
+    if (!profile) {
+      profile = {
+        id: userId,
+        name: email.split('@')[0] || 'Vesha user',
+        email,
+        stylePreferences: [],
+      };
+      await cloud.upsertProfile(userId, profile);
+    }
+    const wardrobe = await cloud.fetchWardrobe(userId);
+    userIdRef.current = userId;
+    setUser(profile);
+    setItems(wardrobe.items);
+    setOutfits(wardrobe.outfits);
+    setWearHistory(wardrobe.wearHistory);
+    setIsAuthenticated(true);
+  }, []);
 
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
     (async () => {
       try {
-        const [storedUser, storedItems, storedOutfits, storedHistory] =
-          await Promise.all([
-            AsyncStorage.getItem(STORAGE_KEYS.user),
-            AsyncStorage.getItem(STORAGE_KEYS.items),
-            AsyncStorage.getItem(STORAGE_KEYS.outfits),
-            AsyncStorage.getItem(STORAGE_KEYS.wearHistory),
+        if (!isSupabaseConfigured()) {
+          const local = await loadLocalState();
+          setUser(local.user);
+          setItems(local.items);
+          setOutfits(local.outfits);
+          setWearHistory(local.wearHistory);
+          setIsAuthenticated(true);
+          userIdRef.current = local.user.id;
+          await AsyncStorage.multiSet([
+            [STORAGE_KEYS.auth, '1'],
+            [STORAGE_KEYS.user, JSON.stringify(local.user)],
           ]);
+          return;
+        }
 
-        const nextUser = storedUser ? JSON.parse(storedUser) : demoUser;
-        setUser(nextUser);
-        setIsAuthenticated(true);
-        await AsyncStorage.multiSet([
-          [STORAGE_KEYS.auth, '1'],
-          [STORAGE_KEYS.user, JSON.stringify(nextUser)],
-        ]);
+        const client = getSupabase();
+        if (!client) return;
 
-        if (storedItems) setItems(JSON.parse(storedItems));
-        if (storedOutfits) setOutfits(JSON.parse(storedOutfits));
-        if (storedHistory) setWearHistory(JSON.parse(storedHistory));
+        const { data } = await client.auth.getSession();
+        if (data.session?.user) {
+          await hydrateCloudUser(
+            data.session.user.id,
+            data.session.user.email ?? '',
+          );
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
+          setItems([]);
+          setOutfits([]);
+          setWearHistory([]);
+          userIdRef.current = null;
+        }
+
+        const { data: sub } = client.auth.onAuthStateChange(
+          async (event, session) => {
+            if (event === 'SIGNED_OUT' || !session?.user) {
+              setIsAuthenticated(false);
+              setUser(null);
+              setItems([]);
+              setOutfits([]);
+              setWearHistory([]);
+              userIdRef.current = null;
+              return;
+            }
+            if (
+              event === 'SIGNED_IN' ||
+              event === 'TOKEN_REFRESHED' ||
+              event === 'INITIAL_SESSION'
+            ) {
+              // Avoid double-load on first mount; SIGNED_IN handles login/register.
+              if (event === 'INITIAL_SESSION' && userIdRef.current) return;
+              if (event === 'TOKEN_REFRESHED' && userIdRef.current) return;
+              try {
+                await hydrateCloudUser(
+                  session.user.id,
+                  session.user.email ?? '',
+                );
+              } catch (error) {
+                console.warn('Failed to hydrate cloud user', error);
+              }
+            }
+          },
+        );
+        unsubscribe = () => sub.subscription.unsubscribe();
       } finally {
         setReady(true);
       }
     })();
-  }, []);
+
+    return () => unsubscribe?.();
+  }, [hydrateCloudUser]);
 
   const enterApp = useCallback(async () => {
-    setUser(demoUser);
+    if (isSupabaseConfigured()) {
+      throw new Error('Demo continue is only available in local mode');
+    }
+    const local = await loadLocalState();
+    setUser(local.user);
+    setItems(local.items);
+    setOutfits(local.outfits);
+    setWearHistory(local.wearHistory);
     setIsAuthenticated(true);
+    userIdRef.current = local.user.id;
     await AsyncStorage.multiSet([
       [STORAGE_KEYS.auth, '1'],
-      [STORAGE_KEYS.user, JSON.stringify(demoUser)],
+      [STORAGE_KEYS.user, JSON.stringify(local.user)],
     ]);
   }, []);
 
-  const signIn = useCallback(async (email: string, name?: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
+    const trimmed = email.trim();
+    if (isSupabaseConfigured()) {
+      const client = getSupabase();
+      if (!client) throw new Error('Supabase is not configured');
+      const { data, error } = await client.auth.signInWithPassword({
+        email: trimmed,
+        password,
+      });
+      if (error) throw error;
+      if (!data.user) throw new Error('Sign in failed');
+      await hydrateCloudUser(data.user.id, data.user.email ?? trimmed);
+      return;
+    }
+
     const nextUser: UserProfile = {
       ...demoUser,
-      email,
-      name: name?.trim() || demoUser.name,
+      email: trimmed || demoUser.email,
     };
     setUser(nextUser);
     setIsAuthenticated(true);
+    userIdRef.current = nextUser.id;
     await AsyncStorage.multiSet([
       [STORAGE_KEYS.auth, '1'],
       [STORAGE_KEYS.user, JSON.stringify(nextUser)],
     ]);
-  }, []);
+  }, [hydrateCloudUser]);
+
+  const signUp = useCallback(
+    async (input: {
+      email: string;
+      password: string;
+      name: string;
+      heightCm?: number;
+    }) => {
+      const email = input.email.trim();
+      const name = input.name.trim() || 'Vesha user';
+
+      if (isSupabaseConfigured()) {
+        const client = getSupabase();
+        if (!client) throw new Error('Supabase is not configured');
+        if (input.password.length < 6) {
+          throw new Error('Password must be at least 6 characters');
+        }
+        const { data, error } = await client.auth.signUp({
+          email,
+          password: input.password,
+          options: { data: { name } },
+        });
+        if (error) throw error;
+        if (!data.user) {
+          throw new Error(
+            'Check your email to confirm the account, then sign in.',
+          );
+        }
+        const profile: UserProfile = {
+          id: data.user.id,
+          name,
+          email,
+          heightCm: input.heightCm,
+          stylePreferences: [],
+        };
+        await cloud.upsertProfile(data.user.id, profile);
+        // If email confirmation is required, session may be null.
+        if (data.session) {
+          await hydrateCloudUser(data.user.id, email);
+        } else {
+          throw new Error(
+            'Account created. Confirm your email, then sign in.',
+          );
+        }
+        return;
+      }
+
+      const nextUser: UserProfile = {
+        ...demoUser,
+        id: `user-${Date.now()}`,
+        email: email || 'new@vesha.app',
+        name,
+        heightCm: input.heightCm,
+      };
+      setUser(nextUser);
+      setIsAuthenticated(true);
+      userIdRef.current = nextUser.id;
+      await AsyncStorage.multiSet([
+        [STORAGE_KEYS.auth, '1'],
+        [STORAGE_KEYS.user, JSON.stringify(nextUser)],
+      ]);
+    },
+    [hydrateCloudUser],
+  );
 
   const signOut = useCallback(async () => {
+    if (isSupabaseConfigured()) {
+      const client = getSupabase();
+      await client?.auth.signOut();
+    }
     setIsAuthenticated(false);
     setUser(null);
+    setItems([]);
+    setOutfits([]);
+    setWearHistory([]);
+    userIdRef.current = null;
     await AsyncStorage.setItem(STORAGE_KEYS.auth, '0');
   }, []);
 
@@ -124,40 +326,68 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUser((current) => {
       if (!current) return current;
       const next = { ...current, ...patch };
-      void AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
+      const uid = userIdRef.current;
+      if (isSupabaseConfigured() && uid) {
+        void cloud.upsertProfile(uid, next).catch((error) => {
+          console.warn('Profile sync failed', error);
+        });
+      } else {
+        void AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
+      }
       return next;
     });
   }, []);
+
+  const persistItemsLocal = (next: ClothingItem[]) => {
+    void AsyncStorage.setItem(STORAGE_KEYS.items, JSON.stringify(next));
+  };
+  const persistOutfitsLocal = (next: Outfit[]) => {
+    void AsyncStorage.setItem(STORAGE_KEYS.outfits, JSON.stringify(next));
+  };
+  const persistWearLocal = (next: WearHistoryEntry[]) => {
+    void AsyncStorage.setItem(STORAGE_KEYS.wearHistory, JSON.stringify(next));
+  };
 
   const addItem = useCallback(async (item: ClothingItem) => {
     setItems((current) => {
       const next = [item, ...current];
-      void AsyncStorage.setItem(STORAGE_KEYS.items, JSON.stringify(next));
+      if (!isSupabaseConfigured()) persistItemsLocal(next);
       return next;
     });
     setPendingImageUri(null);
+    const uid = userIdRef.current;
+    if (isSupabaseConfigured() && uid) {
+      await cloud.insertItem(uid, item);
+    }
   }, []);
 
-  const updateItem = useCallback(async (id: string, patch: Partial<ClothingItem>) => {
-    setItems((current) => {
-      const next = current.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              ...patch,
-              attributes: { ...item.attributes, ...patch.attributes },
-            }
-          : item,
-      );
-      void AsyncStorage.setItem(STORAGE_KEYS.items, JSON.stringify(next));
-      return next;
-    });
-  }, []);
+  const updateItem = useCallback(
+    async (id: string, patch: Partial<ClothingItem>) => {
+      setItems((current) => {
+        const next = current.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                ...patch,
+                attributes: { ...item.attributes, ...patch.attributes },
+              }
+            : item,
+        );
+        if (!isSupabaseConfigured()) persistItemsLocal(next);
+        return next;
+      });
+      const uid = userIdRef.current;
+      if (isSupabaseConfigured() && uid) {
+        await cloud.patchItem(uid, id, patch);
+      }
+    },
+    [],
+  );
 
   const deleteItem = useCallback(async (id: string) => {
     setItems((current) => {
       const next = current.filter((item) => item.id !== id);
-      void AsyncStorage.setItem(STORAGE_KEYS.items, JSON.stringify(next));
+      if (!isSupabaseConfigured()) persistItemsLocal(next);
       return next;
     });
     setOutfits((current) => {
@@ -166,41 +396,60 @@ export function AppProvider({ children }: { children: ReactNode }) {
         itemIds: outfit.itemIds.filter((itemId) => itemId !== id),
         updatedAt: new Date().toISOString(),
       }));
-      void AsyncStorage.setItem(STORAGE_KEYS.outfits, JSON.stringify(next));
+      if (!isSupabaseConfigured()) persistOutfitsLocal(next);
       return next;
     });
+    const uid = userIdRef.current;
+    if (isSupabaseConfigured() && uid) {
+      await cloud.removeItem(uid, id);
+    }
   }, []);
 
   const addOutfit = useCallback(async (outfit: Outfit) => {
     setOutfits((current) => {
       const next = [outfit, ...current];
-      void AsyncStorage.setItem(STORAGE_KEYS.outfits, JSON.stringify(next));
+      if (!isSupabaseConfigured()) persistOutfitsLocal(next);
       return next;
     });
+    const uid = userIdRef.current;
+    if (isSupabaseConfigured() && uid) {
+      await cloud.insertOutfit(uid, outfit);
+    }
   }, []);
 
-  const updateOutfit = useCallback(async (id: string, patch: Partial<Outfit>) => {
-    setOutfits((current) => {
-      const next = current.map((outfit) =>
-        outfit.id === id
-          ? {
-              ...outfit,
-              ...patch,
-              updatedAt: new Date().toISOString(),
-            }
-          : outfit,
-      );
-      void AsyncStorage.setItem(STORAGE_KEYS.outfits, JSON.stringify(next));
-      return next;
-    });
-  }, []);
+  const updateOutfit = useCallback(
+    async (id: string, patch: Partial<Outfit>) => {
+      setOutfits((current) => {
+        const next = current.map((outfit) =>
+          outfit.id === id
+            ? {
+                ...outfit,
+                ...patch,
+                updatedAt: new Date().toISOString(),
+              }
+            : outfit,
+        );
+        if (!isSupabaseConfigured()) persistOutfitsLocal(next);
+        return next;
+      });
+      const uid = userIdRef.current;
+      if (isSupabaseConfigured() && uid) {
+        await cloud.patchOutfit(uid, id, patch);
+      }
+    },
+    [],
+  );
 
   const deleteOutfit = useCallback(async (id: string) => {
     setOutfits((current) => {
       const next = current.filter((outfit) => outfit.id !== id);
-      void AsyncStorage.setItem(STORAGE_KEYS.outfits, JSON.stringify(next));
+      if (!isSupabaseConfigured()) persistOutfitsLocal(next);
       return next;
     });
+    const uid = userIdRef.current;
+    if (isSupabaseConfigured() && uid) {
+      await cloud.removeOutfit(uid, id);
+    }
   }, []);
 
   const markOutfitWorn = useCallback(
@@ -210,6 +459,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!outfit) return;
 
       const wornAt = new Date().toISOString();
+      const entry: WearHistoryEntry = {
+        id: `wear-${Date.now()}`,
+        outfitId: outfit.id,
+        outfitName: outfit.name,
+        itemIds: outfit.itemIds,
+        wornAt,
+        occasion: outfit.occasion,
+      };
 
       setOutfits((current) => {
         const exists = current.some((item) => item.id === outfitId);
@@ -220,27 +477,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 : item,
             )
           : [{ ...outfit, lastWornAt: wornAt, updatedAt: wornAt }, ...current];
-        void AsyncStorage.setItem(STORAGE_KEYS.outfits, JSON.stringify(next));
+        if (!isSupabaseConfigured()) persistOutfitsLocal(next);
         return next;
       });
-
-      const entry: WearHistoryEntry = {
-        id: `wear-${Date.now()}`,
-        outfitId: outfit.id,
-        outfitName: outfit.name,
-        itemIds: outfit.itemIds,
-        wornAt,
-        occasion: outfit.occasion,
-      };
 
       setWearHistory((current) => {
         const next = [entry, ...current];
-        void AsyncStorage.setItem(
-          STORAGE_KEYS.wearHistory,
-          JSON.stringify(next),
-        );
+        if (!isSupabaseConfigured()) persistWearLocal(next);
         return next;
       });
+
+      const uid = userIdRef.current;
+      if (isSupabaseConfigured() && uid) {
+        const existsRemote = outfits.some((item) => item.id === outfitId);
+        if (!existsRemote && snapshot) {
+          await cloud.insertOutfit(uid, {
+            ...outfit,
+            lastWornAt: wornAt,
+            updatedAt: wornAt,
+          });
+        } else {
+          await cloud.patchOutfit(uid, outfitId, {
+            lastWornAt: wornAt,
+          });
+        }
+        await cloud.insertWearEntry(uid, entry);
+      }
     },
     [outfits],
   );
@@ -264,6 +526,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       ready,
+      backendMode,
       isAuthenticated,
       user,
       items,
@@ -273,6 +536,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPendingImageUri,
       enterApp,
       signIn,
+      signUp,
       signOut,
       updateProfile,
       addItem,
@@ -287,6 +551,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }),
     [
       ready,
+      backendMode,
       isAuthenticated,
       user,
       items,
@@ -295,6 +560,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       pendingImageUri,
       enterApp,
       signIn,
+      signUp,
       signOut,
       updateProfile,
       addItem,

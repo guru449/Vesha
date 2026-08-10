@@ -18,11 +18,11 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { useApp } from '@/context/AppContext';
 import { emptyManualAttributes } from '@/data/mockWardrobe';
-import { persistWardrobeImage } from '@/lib/persistImage';
+import { saveWardrobeImage } from '@/lib/uploadImage';
 import { colors, radii, spacing } from '@/constants/theme';
 
 export default function AddItemScreen() {
-  const { addItem, pendingImageUri, setPendingImageUri } = useApp();
+  const { addItem, pendingImageUri, setPendingImageUri, user } = useApp();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [busy, setBusy] = useState<'idle' | 'picking' | 'ai' | 'saving'>('idle');
 
@@ -63,7 +63,10 @@ export default function AddItemScreen() {
           aspect: [3, 4],
         });
         if (!result.canceled) {
-          const persisted = await persistWardrobeImage(result.assets[0].uri);
+          const persisted = await saveWardrobeImage(
+            result.assets[0].uri,
+            user?.id,
+          );
           setImageUri(persisted);
           setPendingImageUri(persisted);
         }
@@ -85,7 +88,10 @@ export default function AddItemScreen() {
         aspect: [3, 4],
       });
       if (!result.canceled) {
-        const persisted = await persistWardrobeImage(result.assets[0].uri);
+        const persisted = await saveWardrobeImage(
+          result.assets[0].uri,
+          user?.id,
+        );
         setImageUri(persisted);
         setPendingImageUri(persisted);
       }
@@ -113,7 +119,7 @@ export default function AddItemScreen() {
     if (!imageUri) return;
     setBusy('saving');
     try {
-      const persisted = await persistWardrobeImage(imageUri);
+      const persisted = await saveWardrobeImage(imageUri, user?.id);
       await addItem({
         id: `item-${Date.now()}`,
         name: 'New piece',

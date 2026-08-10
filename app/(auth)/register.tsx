@@ -1,6 +1,6 @@
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Button } from '@/components/ui/Button';
@@ -11,21 +11,42 @@ import { useApp } from '@/context/AppContext';
 import { colors, spacing } from '@/constants/theme';
 
 export default function RegisterScreen() {
-  const { signIn, updateProfile } = useApp();
+  const { signUp, backendMode } = useApp();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [height, setHeight] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const showError = (message: string) => {
+    setError(message);
+    if (Platform.OS !== 'web') {
+      Alert.alert('Could not create account', message);
+    }
+  };
 
   const onRegister = async () => {
     setLoading(true);
+    setError(null);
     try {
-      await signIn(email.trim() || 'new@vesha.app', name || 'New User');
-      await updateProfile({
+      await signUp({
+        email: email.trim(),
+        password,
+        name: name.trim() || 'New User',
         heightCm: height ? Number(height) : undefined,
       });
       router.replace('/(tabs)/wardrobe');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Please try again.';
+      // Email-confirm flow is success-ish — send them to login.
+      if (message.toLowerCase().includes('confirm your email')) {
+        showError(message);
+        router.replace('/(auth)/login');
+        return;
+      }
+      showError(message);
     } finally {
       setLoading(false);
     }
@@ -40,7 +61,9 @@ export default function RegisterScreen() {
           </Text>
           <Text variant="title">Create your closet</Text>
           <Text variant="body" color={colors.muted}>
-            A quick profile helps personalize your wardrobe later.
+            {backendMode === 'cloud'
+              ? 'Your wardrobe syncs across devices once you create an account.'
+              : 'A quick profile helps personalize your wardrobe later.'}
           </Text>
         </View>
 
@@ -64,7 +87,7 @@ export default function RegisterScreen() {
             secureTextEntry
             value={password}
             onChangeText={setPassword}
-            placeholder="Create a password"
+            placeholder="At least 6 characters"
           />
           <Input
             label="Height (cm) — optional"
@@ -73,10 +96,15 @@ export default function RegisterScreen() {
             onChangeText={setHeight}
             placeholder="168"
           />
+          {error ? (
+            <Text variant="caption" color={colors.danger}>
+              {error}
+            </Text>
+          ) : null}
           <Button
             label={loading ? 'Creating…' : 'Get started'}
             onPress={onRegister}
-            disabled={loading}
+            disabled={loading || !email.trim() || !password}
           />
         </View>
 
