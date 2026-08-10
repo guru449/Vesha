@@ -60,6 +60,14 @@ export default function InsightsScreen() {
           <Text variant="body" color={colors.muted}>
             See what you wear most — and what still needs a turn.
           </Text>
+          <Pressable
+            style={styles.healthLink}
+            onPress={() => router.push('/health')}
+          >
+            <Text variant="bodyMedium" color={colors.primary}>
+              Open Wardrobe Health →
+            </Text>
+          </Pressable>
         </Animated.View>
 
         <View style={styles.summary}>
@@ -187,6 +195,11 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: spacing.sm,
+  },
+  healthLink: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.xs,
+    paddingVertical: spacing.xs,
   },
   summary: {
     flexDirection: 'row',
