@@ -142,6 +142,18 @@ export default function RootLayout() {
                 animation: 'slide_from_right',
               }}
             />
+            <Stack.Screen
+              name="log-wear"
+              options={{
+                headerShown: true,
+                headerTitle: 'Log a look',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.bg },
+                headerShadowVisible: false,
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }}
+            />
           </Stack>
         </PhoneShell>
       </AppProvider>

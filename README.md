@@ -110,7 +110,7 @@ npx serve dist
   - **Enter details manually** / AI no-match fallback
 - Item detail (view/edit/delete, **Wear today** per piece)
 - Wear history for outfits **and** individual items
-- **Wear log** — compact list of days you logged looks (through today)
+- **Wear log** — compact list of days you logged looks (through today); **log a forgotten look** for today or a past day
 - **Outfits** — list, create/edit from wardrobe pieces, mark as worn, delete
 - **Today** — weather-aware “What should I wear?” stylist + wear history
 - **Insights** — most worn, neglected pieces, category/color mix

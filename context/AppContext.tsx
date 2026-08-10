@@ -20,6 +20,7 @@ import type {
   WearHistoryEntry,
 } from '@/data/types';
 import * as cloud from '@/lib/cloudData';
+import { isNewerOrSameTimestamp } from '@/lib/wearCalendar';
 import {
   getBackendMode,
   getSupabase,
@@ -54,8 +55,15 @@ type AppContextValue = {
   addOutfit: (outfit: Outfit) => Promise<void>;
   updateOutfit: (id: string, patch: Partial<Outfit>) => Promise<void>;
   deleteOutfit: (id: string) => Promise<void>;
-  markOutfitWorn: (outfitId: string, snapshot?: Outfit) => Promise<void>;
-  markItemWorn: (itemId: string) => Promise<void>;
+  markOutfitWorn: (
+    outfitId: string,
+    snapshot?: Outfit,
+    options?: { wornAt?: string },
+  ) => Promise<void>;
+  markItemWorn: (
+    itemId: string,
+    options?: { wornAt?: string },
+  ) => Promise<void>;
   getItemsForOutfit: (outfit: Outfit) => ClothingItem[];
   getItemsByIds: (ids: string[]) => ClothingItem[];
   getItemWearStats: (itemId: string) => {
@@ -458,12 +466,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const markOutfitWorn = useCallback(
-    async (outfitId: string, snapshot?: Outfit) => {
+    async (
+      outfitId: string,
+      snapshot?: Outfit,
+      options?: { wornAt?: string },
+    ) => {
       const outfit =
         snapshot || outfits.find((item) => item.id === outfitId);
       if (!outfit) return;
 
-      const wornAt = new Date().toISOString();
+      const wornAt = options?.wornAt ?? new Date().toISOString();
       const entry: WearHistoryEntry = {
         id: `wear-${Date.now()}`,
         outfitId: outfit.id,
@@ -477,22 +489,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setOutfits((current) => {
         const exists = current.some((item) => item.id === outfitId);
         const next = exists
-          ? current.map((item) =>
-              item.id === outfitId
-                ? { ...item, lastWornAt: wornAt, updatedAt: wornAt }
-                : item,
-            )
-          : [{ ...outfit, lastWornAt: wornAt, updatedAt: wornAt }, ...current];
+          ? current.map((item) => {
+              if (item.id !== outfitId) return item;
+              const bumpLast = isNewerOrSameTimestamp(wornAt, item.lastWornAt);
+              return {
+                ...item,
+                lastWornAt: bumpLast ? wornAt : item.lastWornAt,
+                updatedAt: new Date().toISOString(),
+              };
+            })
+          : [
+              {
+                ...outfit,
+                lastWornAt: wornAt,
+                updatedAt: new Date().toISOString(),
+              },
+              ...current,
+            ];
         if (!isSupabaseConfigured()) persistOutfitsLocal(next);
         return next;
       });
 
       setItems((current) => {
-        const next = current.map((item) =>
-          outfit.itemIds.includes(item.id)
-            ? { ...item, lastWornAt: wornAt }
-            : item,
-        );
+        const next = current.map((item) => {
+          if (!outfit.itemIds.includes(item.id)) return item;
+          if (!isNewerOrSameTimestamp(wornAt, item.lastWornAt)) return item;
+          return { ...item, lastWornAt: wornAt };
+        });
         if (!isSupabaseConfigured()) persistItemsLocal(next);
         return next;
       });
@@ -505,35 +528,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       const uid = userIdRef.current;
       if (isSupabaseConfigured() && uid) {
-        const existsRemote = outfits.some((item) => item.id === outfitId);
+        const existingOutfit = outfits.find((item) => item.id === outfitId);
+        const existsRemote = Boolean(existingOutfit);
+        const bumpOutfitLast = isNewerOrSameTimestamp(
+          wornAt,
+          existingOutfit?.lastWornAt ?? outfit.lastWornAt,
+        );
         if (!existsRemote && snapshot) {
           await cloud.insertOutfit(uid, {
             ...outfit,
             lastWornAt: wornAt,
-            updatedAt: wornAt,
+            updatedAt: new Date().toISOString(),
           });
-        } else {
+        } else if (bumpOutfitLast) {
           await cloud.patchOutfit(uid, outfitId, {
             lastWornAt: wornAt,
           });
         }
         await Promise.all(
-          outfit.itemIds.map((itemId) =>
-            cloud.patchItem(uid, itemId, { lastWornAt: wornAt }),
-          ),
+          outfit.itemIds.map(async (itemId) => {
+            const piece = items.find((entry) => entry.id === itemId);
+            if (!isNewerOrSameTimestamp(wornAt, piece?.lastWornAt)) return;
+            await cloud.patchItem(uid, itemId, { lastWornAt: wornAt });
+          }),
         );
         await cloud.insertWearEntry(uid, entry);
       }
     },
-    [outfits],
+    [outfits, items],
   );
 
   const markItemWorn = useCallback(
-    async (itemId: string) => {
+    async (itemId: string, options?: { wornAt?: string }) => {
       const item = items.find((entry) => entry.id === itemId);
       if (!item) return;
 
-      const wornAt = new Date().toISOString();
+      const wornAt = options?.wornAt ?? new Date().toISOString();
       const entry: WearHistoryEntry = {
         id: `wear-item-${Date.now()}`,
         outfitName: item.name,
@@ -543,10 +573,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         source: 'item',
       };
 
+      const bumpLast = isNewerOrSameTimestamp(wornAt, item.lastWornAt);
+
       setItems((current) => {
-        const next = current.map((piece) =>
-          piece.id === itemId ? { ...piece, lastWornAt: wornAt } : piece,
-        );
+        const next = current.map((piece) => {
+          if (piece.id !== itemId) return piece;
+          if (!isNewerOrSameTimestamp(wornAt, piece.lastWornAt)) return piece;
+          return { ...piece, lastWornAt: wornAt };
+        });
         if (!isSupabaseConfigured()) persistItemsLocal(next);
         return next;
       });
@@ -559,7 +593,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       const uid = userIdRef.current;
       if (isSupabaseConfigured() && uid) {
-        await cloud.patchItem(uid, itemId, { lastWornAt: wornAt });
+        if (bumpLast) {
+          await cloud.patchItem(uid, itemId, { lastWornAt: wornAt });
+        }
         await cloud.insertWearEntry(uid, entry);
       }
     },
