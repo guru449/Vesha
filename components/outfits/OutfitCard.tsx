@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -44,12 +45,18 @@ export function OutfitCard({ outfit, index }: Props) {
               />
             ))
           )}
+          {outfit.isPinned ? (
+            <View style={styles.pinBadge}>
+              <Ionicons name="star" size={14} color={colors.white} />
+            </View>
+          ) : null}
         </View>
         <View style={styles.meta}>
           <Text variant="subtitle" numberOfLines={1}>
             {outfit.name}
           </Text>
           <Text variant="caption" color={colors.muted}>
+            {outfit.isPinned ? 'Pinned · ' : ''}
             {outfit.occasion ? `${outfit.occasion} · ` : ''}
             {pieces.length} piece{pieces.length === 1 ? '' : 's'}
           </Text>
@@ -73,6 +80,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     height: 168,
     backgroundColor: colors.surfaceMuted,
+  },
+  pinBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 28,
+    height: 28,
+    borderRadius: radii.pill,
+    backgroundColor: colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tile: {
     width: '50%',

@@ -478,6 +478,7 @@ export function suggestOutfitsForToday(options: {
         0,
       );
       const freshness = outfit.lastWornAt ? daysAgo(outfit.lastWornAt) : 999;
+      const pinnedBoost = outfit.isPinned ? 8 : 0;
       return {
         outfit,
         pieces,
@@ -490,6 +491,7 @@ export function suggestOutfitsForToday(options: {
           prefScore +
           weatherPts +
           neglectPts +
+          pinnedBoost +
           Math.min(freshness, 30) * 0.15,
       };
     })
@@ -501,7 +503,7 @@ export function suggestOutfitsForToday(options: {
 
     const wornRecently =
       outfit.lastWornAt && daysAgo(outfit.lastWornAt) <= RECENT_DAYS;
-    const bits: string[] = ['saved outfit'];
+    const bits: string[] = [outfit.isPinned ? 'pinned look' : 'saved outfit'];
     if (wornRecently) bits.push('worn recently');
     else if (outfit.lastWornAt) {
       bits.push(`last worn ${Math.floor(daysAgo(outfit.lastWornAt))}d ago`);

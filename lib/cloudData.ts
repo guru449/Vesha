@@ -40,6 +40,7 @@ type OutfitRow = {
   created_at: string;
   updated_at: string;
   last_worn_at: string | null;
+  is_pinned: boolean | null;
 };
 
 type WearRow = {
@@ -99,6 +100,7 @@ function mapOutfit(row: OutfitRow): Outfit {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     lastWornAt: row.last_worn_at ?? undefined,
+    isPinned: Boolean(row.is_pinned),
   };
 }
 
@@ -261,6 +263,7 @@ export async function insertOutfit(
     created_at: outfit.createdAt,
     updated_at: outfit.updatedAt,
     last_worn_at: outfit.lastWornAt ?? null,
+    is_pinned: Boolean(outfit.isPinned),
   });
   if (error) throw error;
 }
@@ -280,6 +283,7 @@ export async function patchOutfit(
   if (patch.lastWornAt !== undefined) {
     row.last_worn_at = patch.lastWornAt ?? null;
   }
+  if (patch.isPinned !== undefined) row.is_pinned = Boolean(patch.isPinned);
   const { error } = await client
     .from('outfits')
     .update(row)

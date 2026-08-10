@@ -40,6 +40,8 @@ export type Outfit = {
   updatedAt: string;
   /** Most recent wear timestamp (also mirrored in wearHistory) */
   lastWornAt?: string;
+  /** Favorites float to the top of Outfits and get a Today boost */
+  isPinned?: boolean;
 };
 
 export type WearHistoryEntry = {

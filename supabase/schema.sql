@@ -46,8 +46,11 @@ create table if not exists public.outfits (
   item_ids text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  last_worn_at timestamptz
+  last_worn_at timestamptz,
+  is_pinned boolean not null default false
 );
+
+alter table public.outfits add column if not exists is_pinned boolean not null default false;
 
 create index if not exists outfits_user_id_idx
   on public.outfits (user_id);
