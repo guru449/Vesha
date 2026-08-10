@@ -43,6 +43,12 @@
           "photosPermission": "Allow Vesha to access your photos so you can digitize clothing.",
           "cameraPermission": "Allow Vesha to use your camera to photograph clothing."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Vesha to use your location for weather-aware outfit suggestions."
+        }
       ]
     ],
     "experiments": {

@@ -1,7 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +19,11 @@ import { useApp } from '@/context/AppContext';
 import { colors, radii, spacing } from '@/constants/theme';
 import type { StylistSuggestion } from '@/data/types';
 import { suggestOutfitsForToday } from '@/lib/stylist';
+import {
+  formatWeatherSummary,
+  loadWeatherForToday,
+  type WeatherSnapshot,
+} from '@/lib/weather';
 
 const OCCASIONS = ['Casual', 'Work', 'Brunch', 'Evening', 'Travel'];
 
@@ -36,6 +43,23 @@ export default function TodayScreen() {
     null,
   );
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setWeatherLoading(true);
+      const next = await loadWeatherForToday();
+      if (!cancelled) {
+        setWeather(next);
+        setWeatherLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const recentHistory = useMemo(
     () =>
@@ -52,6 +76,7 @@ export default function TodayScreen() {
       outfits,
       wearHistory,
       stylePreferences: user?.stylePreferences ?? [],
+      weather,
       limit: 3,
     });
     setSuggestions(next);
@@ -108,14 +133,57 @@ export default function TodayScreen() {
       <View style={styles.header}>
         <Animated.View entering={FadeIn.duration(400)}>
           <Text variant="caption" color={colors.muted}>
-            AI stylist · rule-based for now
+            AI stylist · weather-aware
           </Text>
           <Text variant="hero">Today</Text>
         </Animated.View>
         <Text variant="body" color={colors.muted}>
-          What should I wear? Pick an occasion and get looks from your wardrobe.
+          What should I wear? Suggestions use your wardrobe, preferences, and
+          today’s weather.
         </Text>
       </View>
+
+      <Animated.View
+        entering={FadeInDown.delay(80).duration(400)}
+        style={styles.weatherCard}
+      >
+        {weatherLoading ? (
+          <View style={styles.weatherRow}>
+            <ActivityIndicator color={colors.primary} />
+            <Text variant="body" color={colors.muted}>
+              Checking local weather…
+            </Text>
+          </View>
+        ) : weather ? (
+          <View style={styles.weatherRow}>
+            <View style={styles.weatherIcon}>
+              <Ionicons
+                name={
+                  weather.isRainy
+                    ? 'rainy-outline'
+                    : weather.band === 'hot' || weather.band === 'warm'
+                      ? 'sunny-outline'
+                      : weather.band === 'cold' || weather.band === 'cool'
+                        ? 'snow-outline'
+                        : 'partly-sunny-outline'
+                }
+                size={22}
+                color={colors.primary}
+              />
+            </View>
+            <View style={styles.weatherMeta}>
+              <Text variant="bodyMedium">
+                {weather.city || 'Nearby'} · {formatWeatherSummary(weather)}
+              </Text>
+              <Text variant="caption" color={colors.muted}>
+                {weather.source === 'live'
+                  ? 'Live via Open-Meteo — outfits will favor pieces that fit this.'
+                  : 'Using a mild default — allow location for live weather.'}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+      </Animated.View>
 
       <View style={styles.section}>
         <Text variant="caption" color={colors.muted}>
@@ -138,7 +206,11 @@ export default function TodayScreen() {
             />
           ))}
         </ScrollView>
-        <Button label="Suggest outfits" onPress={generate} />
+        <Button
+          label={weatherLoading ? 'Loading weather…' : 'Suggest outfits'}
+          onPress={generate}
+          disabled={weatherLoading}
+        />
       </View>
 
       {suggestions ? (
@@ -171,7 +243,9 @@ export default function TodayScreen() {
                     <Text variant="subtitle">{suggestion.title}</Text>
                     <Text variant="caption" color={colors.primary}>
                       {suggestion.occasion}
-                      {suggestion.sourceOutfitId ? ' · Saved outfit' : ' · New combo'}
+                      {suggestion.sourceOutfitId
+                        ? ' · Saved outfit'
+                        : ' · New combo'}
                     </Text>
                     <Text variant="body" color={colors.muted}>
                       {suggestion.reason}
@@ -263,6 +337,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     gap: spacing.sm,
+  },
+  weatherCard: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    backgroundColor: colors.primaryMist,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+  },
+  weatherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  weatherIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weatherMeta: {
+    flex: 1,
+    gap: 2,
   },
   section: {
     paddingHorizontal: spacing.lg,

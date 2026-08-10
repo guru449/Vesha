@@ -109,7 +109,7 @@ npx serve dist
   - **Enter details manually** / AI no-match fallback
 - Item detail (view/edit/delete)
 - **Outfits** — list, create/edit from wardrobe pieces, mark as worn, delete
-- **Today** — “What should I wear?” stylist + wear history
+- **Today** — weather-aware “What should I wear?” stylist + wear history
 - **Insights** — most worn, neglected pieces, category/color mix
 - **Wardrobe Health** — AI-style check: utilization, versatility %, dormant items, closet gaps
 - Profile (style preferences, sign out; avatar later)
