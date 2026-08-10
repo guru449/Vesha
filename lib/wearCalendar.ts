@@ -2,32 +2,19 @@ import type { ClothingItem, WearHistoryEntry } from '@/data/types';
 
 export type DayKey = string; // YYYY-MM-DD (local)
 
-export type CalendarDay = {
+export type WornDay = {
   key: DayKey;
-  year: number;
-  month: number; // 0-11
-  day: number;
-  inMonth: boolean;
+  label: string;
+  shortLabel: string;
   isToday: boolean;
-  isFuture: boolean;
   entries: WearHistoryEntry[];
 };
 
-export type MonthModel = {
+export type WornMonthSection = {
   id: string; // YYYY-MM
-  year: number;
-  month: number;
   label: string;
-  days: CalendarDay[];
-  daysWorn: number;
-  totalWears: number;
+  days: WornDay[];
 };
-
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
-
-export function weekdayLabels(): readonly string[] {
-  return WEEKDAYS;
-}
 
 export function toDayKey(input: Date | string): DayKey {
   const date = typeof input === 'string' ? new Date(input) : input;
@@ -70,106 +57,62 @@ export function groupWearsByDay(
   return map;
 }
 
-function buildMonthGrid(
-  year: number,
-  month: number,
-  byDay: Map<DayKey, WearHistoryEntry[]>,
-  todayKey: DayKey,
-): CalendarDay[] {
-  const first = new Date(year, month, 1, 12);
-  const startPad = first.getDay(); // 0 Sun
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells: CalendarDay[] = [];
+/**
+ * Compact log: only days that have wears, newest first, never past today.
+ */
+export function buildWornDayLog(
+  history: WearHistoryEntry[],
+  now: Date = new Date(),
+): WornDay[] {
+  const todayKey = toDayKey(now);
+  const byDay = groupWearsByDay(history);
 
-  // Leading days from previous month
-  for (let i = startPad - 1; i >= 0; i -= 1) {
-    const date = new Date(year, month, -i, 12);
-    const key = toDayKey(date);
-    cells.push({
-      key,
-      year: date.getFullYear(),
-      month: date.getMonth(),
-      day: date.getDate(),
-      inMonth: false,
-      isToday: key === todayKey,
-      isFuture: key > todayKey,
-      entries: byDay.get(key) || [],
+  return [...byDay.entries()]
+    .filter(([key]) => key <= todayKey)
+    .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+    .map(([key, entries]) => {
+      const date = parseDayKey(key);
+      return {
+        key,
+        label: formatDayHeading(key),
+        shortLabel: date.toLocaleDateString(undefined, {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        }),
+        isToday: key === todayKey,
+        entries,
+      };
     });
-  }
-
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const date = new Date(year, month, day, 12);
-    const key = toDayKey(date);
-    cells.push({
-      key,
-      year,
-      month,
-      day,
-      inMonth: true,
-      isToday: key === todayKey,
-      isFuture: key > todayKey,
-      entries: byDay.get(key) || [],
-    });
-  }
-
-  // Trailing to complete weeks (42 cells = 6 weeks max)
-  while (cells.length % 7 !== 0) {
-    const last = cells[cells.length - 1]!;
-    const date = new Date(last.year, last.month, last.day + 1, 12);
-    const key = toDayKey(date);
-    cells.push({
-      key,
-      year: date.getFullYear(),
-      month: date.getMonth(),
-      day: date.getDate(),
-      inMonth: false,
-      isToday: key === todayKey,
-      isFuture: key > todayKey,
-      entries: byDay.get(key) || [],
-    });
-  }
-
-  return cells;
 }
 
-export function buildMonthModels(
+/** Group worn days under month headers for easier scanning. */
+export function buildWornMonthSections(
   history: WearHistoryEntry[],
-  options?: { monthsBack?: number; monthsForward?: number; now?: Date },
-): MonthModel[] {
-  const now = options?.now ?? new Date();
-  const monthsBack = options?.monthsBack ?? 8;
-  const monthsForward = options?.monthsForward ?? 1;
-  const byDay = groupWearsByDay(history);
-  const todayKey = toDayKey(now);
-  const models: MonthModel[] = [];
+  now: Date = new Date(),
+): WornMonthSection[] {
+  const days = buildWornDayLog(history, now);
+  const sections: WornMonthSection[] = [];
 
-  for (let offset = -monthsBack; offset <= monthsForward; offset += 1) {
-    const cursor = new Date(now.getFullYear(), now.getMonth() + offset, 1, 12);
-    const year = cursor.getFullYear();
-    const month = cursor.getMonth();
-    const days = buildMonthGrid(year, month, byDay, todayKey);
-    const inMonthDays = days.filter((d) => d.inMonth);
-    const daysWorn = inMonthDays.filter((d) => d.entries.length > 0).length;
-    const totalWears = inMonthDays.reduce(
-      (sum, d) => sum + d.entries.length,
-      0,
-    );
-
-    models.push({
-      id: `${year}-${String(month + 1).padStart(2, '0')}`,
-      year,
-      month,
-      label: cursor.toLocaleDateString(undefined, {
-        month: 'long',
-        year: 'numeric',
-      }),
-      days,
-      daysWorn,
-      totalWears,
-    });
+  for (const day of days) {
+    const date = parseDayKey(day.key);
+    const id = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    let section = sections.find((s) => s.id === id);
+    if (!section) {
+      section = {
+        id,
+        label: date.toLocaleDateString(undefined, {
+          month: 'long',
+          year: 'numeric',
+        }),
+        days: [],
+      };
+      sections.push(section);
+    }
+    section.days.push(day);
   }
 
-  return models;
+  return sections;
 }
 
 export function previewItemsForDay(
@@ -190,10 +133,4 @@ export function previewItemsForDay(
     }
   }
   return preview;
-}
-
-export function monthStreakLabel(model: MonthModel): string {
-  if (model.daysWorn === 0) return 'No looks logged this month';
-  if (model.daysWorn === 1) return '1 day with a logged look';
-  return `${model.daysWorn} days with logged looks`;
 }

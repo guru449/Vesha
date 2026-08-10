@@ -135,7 +135,7 @@ export default function RootLayout() {
               name="calendar"
               options={{
                 headerShown: true,
-                headerTitle: 'Wear calendar',
+                headerTitle: 'Wear log',
                 headerTintColor: colors.primary,
                 headerStyle: { backgroundColor: colors.bg },
                 headerShadowVisible: false,
