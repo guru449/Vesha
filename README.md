@@ -104,6 +104,7 @@ npx serve dist
 
 - Wardrobe grid with search + category filters
 - Add item (camera/library)
+  - **Photo quality check** — lighting, blur, resolution gate before tagging
   - **Identify with AI** → confirm/correct attributes
   - **Add photo as-is** → saves immediately to wardrobe
   - **Enter details manually** / AI no-match fallback
