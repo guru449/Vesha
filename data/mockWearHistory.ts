@@ -8,6 +8,7 @@ export const mockWearHistory: WearHistoryEntry[] = [
     itemIds: ['item-7', 'item-2', 'item-4'],
     wornAt: '2026-08-08T09:30:00Z',
     occasion: 'Work',
+    source: 'outfit',
   },
   {
     id: 'wear-2',
@@ -16,6 +17,7 @@ export const mockWearHistory: WearHistoryEntry[] = [
     itemIds: ['item-1', 'item-2', 'item-4', 'item-5'],
     wornAt: '2026-08-07T11:00:00Z',
     occasion: 'Casual',
+    source: 'outfit',
   },
   {
     id: 'wear-3',
@@ -24,6 +26,7 @@ export const mockWearHistory: WearHistoryEntry[] = [
     itemIds: ['item-7', 'item-2', 'item-4'],
     wornAt: '2026-08-01T09:00:00Z',
     occasion: 'Work',
+    source: 'outfit',
   },
   {
     id: 'wear-4',
@@ -32,6 +35,7 @@ export const mockWearHistory: WearHistoryEntry[] = [
     itemIds: ['item-1', 'item-2', 'item-4'],
     wornAt: '2026-07-26T12:00:00Z',
     occasion: 'Casual',
+    source: 'outfit',
   },
   {
     id: 'wear-5',
@@ -40,5 +44,14 @@ export const mockWearHistory: WearHistoryEntry[] = [
     itemIds: ['item-8', 'item-2'],
     wornAt: '2026-04-12T14:00:00Z',
     occasion: 'Casual',
+    source: 'outfit',
+  },
+  {
+    id: 'wear-6',
+    outfitName: 'Gold Hoop Earrings',
+    itemIds: ['item-5'],
+    wornAt: '2026-08-05T18:00:00Z',
+    occasion: 'Everyday',
+    source: 'item',
   },
 ];

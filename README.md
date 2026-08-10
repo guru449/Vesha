@@ -107,7 +107,8 @@ npx serve dist
   - **Identify with AI** → confirm/correct attributes
   - **Add photo as-is** → saves immediately to wardrobe
   - **Enter details manually** / AI no-match fallback
-- Item detail (view/edit/delete)
+- Item detail (view/edit/delete, **Wear today** per piece)
+- Wear history for outfits **and** individual items
 - **Outfits** — list, create/edit from wardrobe pieces, mark as worn, delete
 - **Today** — weather-aware “What should I wear?” stylist + wear history
 - **Insights** — most worn, neglected pieces, category/color mix
