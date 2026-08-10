@@ -204,11 +204,11 @@ export default function ItemDetailScreen() {
               <Text variant="caption" color={colors.muted}>
                 {wearStats.lastWornAt
                   ? `Last worn ${new Date(wearStats.lastWornAt).toLocaleDateString()}`
-                  : 'Mark it when you wear this piece alone or in an outfit.'}
+                  : 'Log it when you wear this piece alone or in an outfit.'}
               </Text>
               <Button
                 label={
-                  wearing ? 'Saving…' : justWorn ? 'Marked worn' : 'Wear today'
+                  wearing ? 'Saving…' : justWorn ? 'Logged' : 'Wear today'
                 }
                 onPress={onWearToday}
                 disabled={wearing}
