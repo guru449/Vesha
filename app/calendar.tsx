@@ -165,6 +165,20 @@ function DayRow({
               getItemsByIds={getItemsByIds}
             />
           ))}
+          <Pressable
+            style={styles.addLookLink}
+            onPress={() =>
+              router.push({
+                pathname: '/log-wear',
+                params: { day: day.key },
+              })
+            }
+          >
+            <Ionicons name="add" size={16} color={colors.primary} />
+            <Text variant="caption" color={colors.primary}>
+              Add another look
+            </Text>
+          </Pressable>
         </View>
       ) : null}
     </Animated.View>
@@ -211,22 +225,33 @@ export default function WearCalendarScreen() {
           <Text variant="title">Wear log</Text>
           <Text variant="body" color={colors.muted}>
             Compact history of what you wore, through today. Tap a day to
-            expand.
+            expand — or log a forgotten look.
           </Text>
           <Text variant="caption" color={colors.muted}>
             {totalDays} day{totalDays === 1 ? '' : 's'} · {wearHistory.length}{' '}
             wear{wearHistory.length === 1 ? '' : 's'}
           </Text>
+          <Button
+            label="Log a look"
+            onPress={() => router.push('/log-wear')}
+            style={styles.logBtn}
+          />
         </Animated.View>
 
         {sections.length === 0 ? (
           <View style={styles.empty}>
             <Text variant="subtitle">No looks yet</Text>
             <Text variant="body" color={colors.muted}>
-              Mark an outfit or item as worn and it will show up here.
+              Log something you wore today or on a past day — it will show up
+              here.
             </Text>
             <Button
+              label="Log a look"
+              onPress={() => router.push('/log-wear')}
+            />
+            <Button
               label="Go to Today"
+              variant="ghost"
               onPress={() => router.push('/(tabs)/today')}
             />
           </View>
@@ -270,6 +295,10 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: spacing.sm,
+  },
+  logBtn: {
+    marginTop: spacing.xs,
+    alignSelf: 'flex-start',
   },
   empty: {
     gap: spacing.sm,
@@ -360,5 +389,11 @@ const styles = StyleSheet.create({
   entryMeta: {
     flex: 1,
     gap: 2,
+  },
+  addLookLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: spacing.xs,
   },
 });

@@ -134,3 +134,48 @@ export function previewItemsForDay(
   }
   return preview;
 }
+
+/** Recent days through today, newest first — for logging forgotten looks. */
+export function recentDayOptions(
+  count = 14,
+  now: Date = new Date(),
+): WornDay[] {
+  const todayKey = toDayKey(now);
+  const days: WornDay[] = [];
+  for (let offset = 0; offset < count; offset += 1) {
+    const date = new Date(now);
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() - offset);
+    const key = toDayKey(date);
+    if (key > todayKey) continue;
+    days.push({
+      key,
+      label: formatDayHeading(key),
+      shortLabel: date.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      }),
+      isToday: key === todayKey,
+      entries: [],
+    });
+  }
+  return days;
+}
+
+/**
+ * Timestamp for a wear logged on a calendar day.
+ * Today uses "now"; past days use local noon so they sort cleanly.
+ */
+export function wornAtForDayKey(key: DayKey, now: Date = new Date()): string {
+  if (key === toDayKey(now)) return now.toISOString();
+  return parseDayKey(key).toISOString();
+}
+
+export function isNewerOrSameTimestamp(
+  candidate: string,
+  existing?: string,
+): boolean {
+  if (!existing) return true;
+  return new Date(candidate).getTime() >= new Date(existing).getTime();
+}
