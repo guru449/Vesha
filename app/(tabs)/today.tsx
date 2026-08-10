@@ -141,6 +141,15 @@ export default function TodayScreen() {
           What should I wear? Suggestions use your wardrobe, preferences, and
           today’s weather.
         </Text>
+        <Pressable
+          style={styles.calendarLink}
+          onPress={() => router.push('/calendar')}
+        >
+          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+          <Text variant="bodyMedium" color={colors.primary}>
+            Open wear calendar
+          </Text>
+        </Pressable>
       </View>
 
       <Animated.View
@@ -348,6 +357,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     gap: spacing.sm,
+  },
+  calendarLink: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.xs,
+    backgroundColor: colors.primaryMist,
+    borderRadius: radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   weatherCard: {
     marginHorizontal: spacing.lg,

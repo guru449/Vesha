@@ -106,6 +106,16 @@ export default function ProfileScreen() {
 
       <Pressable
         style={styles.secondaryCard}
+        onPress={() => router.push('/calendar')}
+      >
+        <Text variant="subtitle">Wear calendar</Text>
+        <Text variant="body" color={colors.muted}>
+          Scroll months and see what you wore each day.
+        </Text>
+      </Pressable>
+
+      <Pressable
+        style={styles.secondaryCard}
         onPress={() => router.push('/insights')}
       >
         <Text variant="subtitle">Wear insights</Text>
