@@ -18,7 +18,11 @@ import { Text } from '@/components/ui/Text';
 import { useApp } from '@/context/AppContext';
 import { colors, radii, spacing } from '@/constants/theme';
 import type { StylistSuggestion } from '@/data/types';
-import { suggestOutfitsForToday } from '@/lib/stylist';
+import {
+  diagnoseWardrobeGaps,
+  suggestOutfitsForToday,
+  type WardrobeGapHint,
+} from '@/lib/stylist';
 import {
   formatWeatherSummary,
   loadWeatherForToday,
@@ -42,6 +46,7 @@ export default function TodayScreen() {
   const [suggestions, setSuggestions] = useState<StylistSuggestion[] | null>(
     null,
   );
+  const [gapHint, setGapHint] = useState<WardrobeGapHint | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
@@ -80,6 +85,11 @@ export default function TodayScreen() {
       limit: 3,
     });
     setSuggestions(next);
+    setGapHint(
+      next.length === 0
+        ? diagnoseWardrobeGaps({ occasion, items })
+        : null,
+    );
   };
 
   const saveSuggestion = async (suggestion: StylistSuggestion) => {
@@ -211,6 +221,7 @@ export default function TodayScreen() {
               onPress={() => {
                 setOccasion(option);
                 setSuggestions(null);
+                setGapHint(null);
               }}
             />
           ))}
@@ -226,9 +237,23 @@ export default function TodayScreen() {
         <View style={styles.section}>
           <Text variant="subtitle">Suggestions</Text>
           {suggestions.length === 0 ? (
-            <Text variant="body" color={colors.muted}>
-              Not enough pieces yet. Add more items to your wardrobe.
-            </Text>
+            <View style={styles.emptySuggest}>
+              <Text variant="bodyMedium">Need a few more pieces</Text>
+              <Text variant="body" color={colors.muted}>
+                {gapHint?.message ||
+                  'Not enough pieces yet. Add more items to your wardrobe.'}
+              </Text>
+              {gapHint?.missing.length ? (
+                <Text variant="caption" color={colors.primary}>
+                  Missing: {gapHint.missing.join(' · ')}
+                </Text>
+              ) : null}
+              <Button
+                label="Add to wardrobe"
+                onPress={() => router.push('/(tabs)/add')}
+                style={styles.emptyBtn}
+              />
+            </View>
           ) : (
             suggestions.map((suggestion, index) => {
               const pieces = getItemsByIds(suggestion.itemIds);
@@ -401,6 +426,16 @@ const styles = StyleSheet.create({
   chipRow: {
     paddingRight: spacing.md,
     marginBottom: spacing.sm,
+  },
+  emptySuggest: {
+    gap: spacing.sm,
+    backgroundColor: colors.primaryMist,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+  },
+  emptyBtn: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.xs,
   },
   card: {
     backgroundColor: colors.surface,
