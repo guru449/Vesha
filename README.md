@@ -43,12 +43,24 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
    For easy testing, turn **off** “Confirm email” under Auth → Providers → Email
 5. Restart Expo (`npm start`) so env vars load
 
+### AI clothing recognition (OpenAI via Edge Function)
+
+The app never holds the OpenAI key. Recognition runs in `supabase/functions/identify-clothing`.
+
+```bash
+supabase secrets set OPENAI_API_KEY=sk-...
+supabase functions deploy identify-clothing
+```
+
 | Mode | When | Behavior |
 |------|------|----------|
-| **Local demo** | Env vars missing | Skip auth, mock wardrobe, photos on device |
+| **Local demo** | Env vars missing | Skip auth, mock wardrobe, photos on device, mock AI |
 | **Cloud** | Env vars set | Real auth, empty closet per user, cloud photo URLs |
+| **Live AI** | Cloud + function deployed + `OPENAI_API_KEY` | Real vision tags on **Identify with AI** |
 
-Profile shows which mode is active (`Cloud sync · Supabase` vs `Local demo`).
+If the function isn’t deployed yet, Identify with AI falls back to the demo mock and labels the banner **Demo suggestion**.
+
+Profile shows which backend mode is active (`Cloud sync · Supabase` vs `Local demo`).
 
 ## Investor web demo (free hosting)
 
@@ -103,7 +115,7 @@ npx serve dist
 - Profile (style preferences, sign out; avatar later)
 - **Supabase foundation** — auth, Postgres sync, Storage uploads
 
-AI recognition is still **mocked**. Real vision tagging is next after backend credentials are live.
+AI recognition uses **OpenAI GPT-4o-mini** when the Edge Function is deployed; otherwise it uses the local mock.
 
 ## Project structure
 
@@ -112,8 +124,10 @@ AI recognition is still **mocked**. Real vision tagging is next after backend cr
 - `constants/theme.ts` — design tokens
 - `context/AppContext.tsx` — auth + wardrobe state (local or cloud)
 - `data/` — types + mock wardrobe / AI stub
+- `lib/aiIdentify.ts` — live AI client + mock fallback
 - `lib/supabase.ts` — Supabase client
 - `lib/cloudData.ts` — cloud CRUD
 - `lib/uploadImage.ts` — Storage upload + local fallback
 - `lib/persistImage.ts` — local file copy for demo mode
 - `supabase/schema.sql` — database + storage setup
+- `supabase/functions/identify-clothing/` — vision Edge Function
