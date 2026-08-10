@@ -138,6 +138,20 @@ export default function TodayScreen() {
     }
   };
 
+  const tweakSuggestion = (suggestion: StylistSuggestion) => {
+    router.push({
+      pathname: '/outfit/tweak',
+      params: {
+        title: suggestion.title,
+        occasion: suggestion.occasion,
+        itemIds: suggestion.itemIds.join(','),
+        ...(suggestion.sourceOutfitId
+          ? { sourceOutfitId: suggestion.sourceOutfitId }
+          : {}),
+      },
+    });
+  };
+
   return (
     <Screen padded={false} scroll>
       <View style={styles.header}>
@@ -309,6 +323,12 @@ export default function TodayScreen() {
                         style={styles.cardBtn}
                       />
                     </View>
+                    <Button
+                      label="Tweak look"
+                      variant="ghost"
+                      onPress={() => tweakSuggestion(suggestion)}
+                      disabled={Boolean(busyId)}
+                    />
                   </View>
                 </Animated.View>
               );
