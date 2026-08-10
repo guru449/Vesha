@@ -158,6 +158,7 @@ export default function AddItemScreen() {
         id: `item-${Date.now()}`,
         name: 'New piece',
         imageUri: persisted,
+        imageUris: [persisted],
         attributes: {
           ...emptyManualAttributes,
           category: 'Accessories',

@@ -19,6 +19,7 @@ create table if not exists public.clothing_items (
   user_id uuid not null references auth.users (id) on delete cascade,
   name text not null,
   image_uri text not null,
+  image_uris text[] not null default '{}',
   category text not null,
   color text not null,
   pattern text not null,
@@ -33,6 +34,14 @@ create table if not exists public.clothing_items (
 );
 
 alter table public.clothing_items add column if not exists last_worn_at timestamptz;
+alter table public.clothing_items add column if not exists image_uris text[] not null default '{}';
+
+-- Backfill cover into image_uris when empty
+update public.clothing_items
+set image_uris = array[image_uri]
+where coalesce(cardinality(image_uris), 0) = 0
+  and image_uri is not null
+  and image_uri <> '';
 
 create index if not exists clothing_items_user_id_idx
   on public.clothing_items (user_id);

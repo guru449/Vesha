@@ -19,6 +19,7 @@ type ItemRow = {
   id: string;
   name: string;
   image_uri: string;
+  image_uris: string[] | null;
   category: string;
   color: string;
   pattern: string;
@@ -70,10 +71,18 @@ function mapProfile(row: ProfileRow): UserProfile {
 }
 
 function mapItem(row: ItemRow): ClothingItem {
+  const images =
+    row.image_uris && row.image_uris.length
+      ? row.image_uris
+      : row.image_uri
+        ? [row.image_uri]
+        : [];
+  const cover = images[0] ?? row.image_uri;
   return {
     id: row.id,
     name: row.name,
-    imageUri: row.image_uri,
+    imageUri: cover,
+    imageUris: images,
     attributes: {
       category: row.category as ClothingItem['attributes']['category'],
       color: row.color,
@@ -182,11 +191,18 @@ export async function insertItem(
   item: ClothingItem,
 ): Promise<void> {
   const client = requireClient();
+  const imageUris =
+    item.imageUris && item.imageUris.length
+      ? item.imageUris
+      : item.imageUri
+        ? [item.imageUri]
+        : [];
   const { error } = await client.from('clothing_items').insert({
     id: item.id,
     user_id: userId,
     name: item.name,
-    image_uri: item.imageUri,
+    image_uri: imageUris[0] ?? item.imageUri,
+    image_uris: imageUris,
     category: item.attributes.category,
     color: item.attributes.color,
     pattern: item.attributes.pattern,
@@ -211,6 +227,12 @@ export async function patchItem(
   const row: Record<string, unknown> = {};
   if (patch.name !== undefined) row.name = patch.name;
   if (patch.imageUri !== undefined) row.image_uri = patch.imageUri;
+  if (patch.imageUris !== undefined) {
+    row.image_uris = patch.imageUris;
+    if (patch.imageUri === undefined && patch.imageUris[0]) {
+      row.image_uri = patch.imageUris[0];
+    }
+  }
   if (patch.notes !== undefined) row.notes = patch.notes ?? null;
   if (patch.aiConfidence !== undefined) {
     row.ai_confidence = patch.aiConfidence ?? null;

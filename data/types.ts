@@ -13,7 +13,10 @@ export type ClothingAttributes = {
 export type ClothingItem = {
   id: string;
   name: string;
+  /** Cover photo (first of imageUris). Kept for list/card compat. */
   imageUri: string;
+  /** All photos for this piece; imageUri is always imageUris[0]. */
+  imageUris?: string[];
   attributes: ClothingAttributes;
   notes?: string;
   createdAt: string;

@@ -11,6 +11,7 @@ import Animated, {
 import { Text } from '@/components/ui/Text';
 import { colors, radii, spacing } from '@/constants/theme';
 import type { ClothingItem } from '@/data/types';
+import { getItemImages } from '@/lib/itemImages';
 
 type Props = {
   item: ClothingItem;
@@ -22,6 +23,7 @@ export function ClothingCard({ item, index }: Props) {
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
+  const photoCount = getItemImages(item).length;
 
   return (
     <Animated.View
@@ -39,12 +41,21 @@ export function ClothingCard({ item, index }: Props) {
           }}
           style={styles.pressable}
         >
-          <Image
-            source={{ uri: item.imageUri }}
-            style={styles.image}
-            contentFit="cover"
-            transition={280}
-          />
+          <View>
+            <Image
+              source={{ uri: item.imageUri }}
+              style={styles.image}
+              contentFit="cover"
+              transition={280}
+            />
+            {photoCount > 1 ? (
+              <View style={styles.photoCount}>
+                <Text variant="caption" color={colors.white}>
+                  {photoCount}
+                </Text>
+              </View>
+            ) : null}
+          </View>
           <View style={styles.meta}>
             <Text variant="bodyMedium" numberOfLines={1}>
               {item.name}
@@ -79,8 +90,21 @@ const styles = StyleSheet.create({
     aspectRatio: 0.82,
     backgroundColor: colors.surfaceMuted,
   },
+  photoCount: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    minWidth: 22,
+    height: 22,
+    borderRadius: radii.pill,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.overlay,
+  },
   meta: {
     padding: spacing.md,
     gap: 4,
   },
 });
+

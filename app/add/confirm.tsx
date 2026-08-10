@@ -133,6 +133,7 @@ export default function ConfirmAttributesScreen() {
           ? 'Photo upload'
           : name.trim() || 'Untitled piece',
         imageUri: persisted,
+        imageUris: [persisted],
         attributes: options?.asPhotoOnly
           ? {
               ...emptyManualAttributes,

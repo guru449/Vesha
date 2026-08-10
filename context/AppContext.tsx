@@ -12,6 +12,7 @@ import {
 
 import { mockOutfits } from '@/data/mockOutfits';
 import { demoUser, mockWardrobe } from '@/data/mockWardrobe';
+import { normalizeClothingItem, withItemImages } from '@/lib/itemImages';
 import { mockWearHistory } from '@/data/mockWearHistory';
 import type {
   ClothingItem,
@@ -88,9 +89,13 @@ async function loadLocalState(): Promise<{
       AsyncStorage.getItem(STORAGE_KEYS.wearHistory),
     ]);
 
+  const parsedItems: ClothingItem[] = storedItems
+    ? JSON.parse(storedItems)
+    : mockWardrobe;
+
   return {
     user: storedUser ? JSON.parse(storedUser) : demoUser,
-    items: storedItems ? JSON.parse(storedItems) : mockWardrobe,
+    items: parsedItems.map(normalizeClothingItem),
     outfits: storedOutfits ? JSON.parse(storedOutfits) : mockOutfits,
     wearHistory: storedHistory ? JSON.parse(storedHistory) : mockWearHistory,
   };
@@ -121,7 +126,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const wardrobe = await cloud.fetchWardrobe(userId);
     userIdRef.current = userId;
     setUser(profile);
-    setItems(wardrobe.items);
+    setItems(wardrobe.items.map(normalizeClothingItem));
     setOutfits(wardrobe.outfits);
     setWearHistory(wardrobe.wearHistory);
     setIsAuthenticated(true);
@@ -354,36 +359,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addItem = useCallback(async (item: ClothingItem) => {
+    const normalized = normalizeClothingItem(item);
     setItems((current) => {
-      const next = [item, ...current];
+      const next = [normalized, ...current];
       if (!isSupabaseConfigured()) persistItemsLocal(next);
       return next;
     });
     setPendingImageUri(null);
     const uid = userIdRef.current;
     if (isSupabaseConfigured() && uid) {
-      await cloud.insertItem(uid, item);
+      await cloud.insertItem(uid, normalized);
     }
   }, []);
 
   const updateItem = useCallback(
     async (id: string, patch: Partial<ClothingItem>) => {
+      let cloudPatch: Partial<ClothingItem> = patch;
       setItems((current) => {
-        const next = current.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                ...patch,
-                attributes: { ...item.attributes, ...patch.attributes },
-              }
-            : item,
-        );
+        const next = current.map((item) => {
+          if (item.id !== id) return item;
+          const merged: ClothingItem = {
+            ...item,
+            ...patch,
+            attributes: { ...item.attributes, ...patch.attributes },
+          };
+          const normalized =
+            patch.imageUris !== undefined
+              ? withItemImages(merged, patch.imageUris, patch.imageUri)
+              : patch.imageUri !== undefined
+                ? withItemImages(
+                    merged,
+                    [
+                      patch.imageUri,
+                      ...(item.imageUris ?? []).filter(
+                        (uri) => uri !== patch.imageUri,
+                      ),
+                    ],
+                    patch.imageUri,
+                  )
+                : normalizeClothingItem(merged);
+          cloudPatch = {
+            ...patch,
+            imageUri: normalized.imageUri,
+            imageUris: normalized.imageUris,
+          };
+          return normalized;
+        });
         if (!isSupabaseConfigured()) persistItemsLocal(next);
         return next;
       });
       const uid = userIdRef.current;
       if (isSupabaseConfigured() && uid) {
-        await cloud.patchItem(uid, id, patch);
+        await cloud.patchItem(uid, id, cloudPatch);
       }
     },
     [],

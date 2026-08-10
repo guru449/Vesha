@@ -9,12 +9,16 @@ export const demoUser: UserProfile = {
   stylePreferences: ['Minimal', 'Smart casual', 'Earthy tones'],
 };
 
-export const mockWardrobe: ClothingItem[] = [
+const rawMockWardrobe: ClothingItem[] = [
   {
     id: 'item-1',
     name: 'Sage Linen Shirt',
     imageUri:
       'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&q=80',
+    imageUris: [
+      'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&q=80',
+      'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600&q=80',
+    ],
     attributes: {
       category: 'Tops',
       color: 'Sage green',
@@ -64,6 +68,10 @@ export const mockWardrobe: ClothingItem[] = [
     name: 'Leather Ankle Boots',
     imageUri:
       'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&q=80',
+    imageUris: [
+      'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&q=80',
+      'https://images.unsplash.com/photo-1520639888713-7851133b9d0e?w=600&q=80',
+    ],
     attributes: {
       category: 'Shoes',
       color: 'Cognac',
@@ -140,6 +148,11 @@ export const mockWardrobe: ClothingItem[] = [
     aiConfidence: 0.95,
   },
 ];
+
+export const mockWardrobe: ClothingItem[] = rawMockWardrobe.map((item) => ({
+  ...item,
+  imageUris: item.imageUris?.length ? item.imageUris : [item.imageUri],
+}));
 
 export type AiIdentifyResult =
   | {
