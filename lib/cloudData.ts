@@ -29,6 +29,7 @@ type ItemRow = {
   notes: string | null;
   ai_confidence: number | null;
   created_at: string;
+  last_worn_at: string | null;
 };
 
 type OutfitRow = {
@@ -43,11 +44,12 @@ type OutfitRow = {
 
 type WearRow = {
   id: string;
-  outfit_id: string;
+  outfit_id: string | null;
   outfit_name: string;
   item_ids: string[] | null;
   worn_at: string;
   occasion: string | null;
+  source: string | null;
 };
 
 function requireClient() {
@@ -84,6 +86,7 @@ function mapItem(row: ItemRow): ClothingItem {
     notes: row.notes ?? undefined,
     createdAt: row.created_at,
     aiConfidence: row.ai_confidence ?? undefined,
+    lastWornAt: row.last_worn_at ?? undefined,
   };
 }
 
@@ -102,11 +105,12 @@ function mapOutfit(row: OutfitRow): Outfit {
 function mapWear(row: WearRow): WearHistoryEntry {
   return {
     id: row.id,
-    outfitId: row.outfit_id,
+    outfitId: row.outfit_id ?? undefined,
     outfitName: row.outfit_name,
     itemIds: row.item_ids ?? [],
     wornAt: row.worn_at,
     occasion: row.occasion ?? undefined,
+    source: row.source === 'item' ? 'item' : 'outfit',
   };
 }
 
@@ -193,6 +197,7 @@ export async function insertItem(
     notes: item.notes ?? null,
     ai_confidence: item.aiConfidence ?? null,
     created_at: item.createdAt,
+    last_worn_at: item.lastWornAt ?? null,
   });
   if (error) throw error;
 }
@@ -209,6 +214,9 @@ export async function patchItem(
   if (patch.notes !== undefined) row.notes = patch.notes ?? null;
   if (patch.aiConfidence !== undefined) {
     row.ai_confidence = patch.aiConfidence ?? null;
+  }
+  if (patch.lastWornAt !== undefined) {
+    row.last_worn_at = patch.lastWornAt ?? null;
   }
   if (patch.attributes) {
     const a = patch.attributes;
@@ -298,11 +306,12 @@ export async function insertWearEntry(
   const { error } = await client.from('wear_history').insert({
     id: entry.id,
     user_id: userId,
-    outfit_id: entry.outfitId,
+    outfit_id: entry.outfitId ?? null,
     outfit_name: entry.outfitName,
     item_ids: entry.itemIds,
     worn_at: entry.wornAt,
     occasion: entry.occasion ?? null,
+    source: entry.source ?? (entry.outfitId ? 'outfit' : 'item'),
   });
   if (error) throw error;
 }

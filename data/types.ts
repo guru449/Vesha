@@ -18,6 +18,8 @@ export type ClothingItem = {
   notes?: string;
   createdAt: string;
   aiConfidence?: number;
+  /** Updated when worn alone or as part of an outfit */
+  lastWornAt?: string;
 };
 
 export type UserProfile = {
@@ -42,11 +44,14 @@ export type Outfit = {
 
 export type WearHistoryEntry = {
   id: string;
-  outfitId: string;
+  /** Present for outfit wears; omitted for solo item wears */
+  outfitId?: string;
+  /** Outfit name, or the item name for solo wears */
   outfitName: string;
   itemIds: string[];
   wornAt: string;
   occasion?: string;
+  source?: 'outfit' | 'item';
 };
 
 export type StylistSuggestion = {

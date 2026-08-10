@@ -55,8 +55,13 @@ type AppContextValue = {
   updateOutfit: (id: string, patch: Partial<Outfit>) => Promise<void>;
   deleteOutfit: (id: string) => Promise<void>;
   markOutfitWorn: (outfitId: string, snapshot?: Outfit) => Promise<void>;
+  markItemWorn: (itemId: string) => Promise<void>;
   getItemsForOutfit: (outfit: Outfit) => ClothingItem[];
   getItemsByIds: (ids: string[]) => ClothingItem[];
+  getItemWearStats: (itemId: string) => {
+    wearCount: number;
+    lastWornAt?: string;
+  };
 };
 
 const STORAGE_KEYS = {
@@ -466,6 +471,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         itemIds: outfit.itemIds,
         wornAt,
         occasion: outfit.occasion,
+        source: 'outfit',
       };
 
       setOutfits((current) => {
@@ -478,6 +484,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
             )
           : [{ ...outfit, lastWornAt: wornAt, updatedAt: wornAt }, ...current];
         if (!isSupabaseConfigured()) persistOutfitsLocal(next);
+        return next;
+      });
+
+      setItems((current) => {
+        const next = current.map((item) =>
+          outfit.itemIds.includes(item.id)
+            ? { ...item, lastWornAt: wornAt }
+            : item,
+        );
+        if (!isSupabaseConfigured()) persistItemsLocal(next);
         return next;
       });
 
@@ -501,10 +517,81 @@ export function AppProvider({ children }: { children: ReactNode }) {
             lastWornAt: wornAt,
           });
         }
+        await Promise.all(
+          outfit.itemIds.map((itemId) =>
+            cloud.patchItem(uid, itemId, { lastWornAt: wornAt }),
+          ),
+        );
         await cloud.insertWearEntry(uid, entry);
       }
     },
     [outfits],
+  );
+
+  const markItemWorn = useCallback(
+    async (itemId: string) => {
+      const item = items.find((entry) => entry.id === itemId);
+      if (!item) return;
+
+      const wornAt = new Date().toISOString();
+      const entry: WearHistoryEntry = {
+        id: `wear-item-${Date.now()}`,
+        outfitName: item.name,
+        itemIds: [item.id],
+        wornAt,
+        occasion: item.attributes.occasion,
+        source: 'item',
+      };
+
+      setItems((current) => {
+        const next = current.map((piece) =>
+          piece.id === itemId ? { ...piece, lastWornAt: wornAt } : piece,
+        );
+        if (!isSupabaseConfigured()) persistItemsLocal(next);
+        return next;
+      });
+
+      setWearHistory((current) => {
+        const next = [entry, ...current];
+        if (!isSupabaseConfigured()) persistWearLocal(next);
+        return next;
+      });
+
+      const uid = userIdRef.current;
+      if (isSupabaseConfigured() && uid) {
+        await cloud.patchItem(uid, itemId, { lastWornAt: wornAt });
+        await cloud.insertWearEntry(uid, entry);
+      }
+    },
+    [items],
+  );
+
+  const getItemWearStats = useCallback(
+    (itemId: string) => {
+      let wearCount = 0;
+      let lastWornAt: string | undefined;
+      for (const entry of wearHistory) {
+        if (!entry.itemIds.includes(itemId)) continue;
+        wearCount += 1;
+        if (
+          !lastWornAt ||
+          new Date(entry.wornAt).getTime() > new Date(lastWornAt).getTime()
+        ) {
+          lastWornAt = entry.wornAt;
+        }
+      }
+      const item = items.find((piece) => piece.id === itemId);
+      if (item?.lastWornAt) {
+        if (
+          !lastWornAt ||
+          new Date(item.lastWornAt).getTime() > new Date(lastWornAt).getTime()
+        ) {
+          lastWornAt = item.lastWornAt;
+        }
+      }
+      return { wearCount, lastWornAt };
+    },
+    [wearHistory, items],
   );
 
   const getItemsForOutfit = useCallback(
@@ -546,8 +633,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateOutfit,
       deleteOutfit,
       markOutfitWorn,
+      markItemWorn,
       getItemsForOutfit,
       getItemsByIds,
+      getItemWearStats,
     }),
     [
       ready,
@@ -570,8 +659,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateOutfit,
       deleteOutfit,
       markOutfitWorn,
+      markItemWorn,
       getItemsForOutfit,
       getItemsByIds,
+      getItemWearStats,
     ],
   );
 

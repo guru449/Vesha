@@ -28,8 +28,11 @@ create table if not exists public.clothing_items (
   brand text,
   notes text,
   ai_confidence double precision,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  last_worn_at timestamptz
 );
+
+alter table public.clothing_items add column if not exists last_worn_at timestamptz;
 
 create index if not exists clothing_items_user_id_idx
   on public.clothing_items (user_id);
@@ -49,16 +52,21 @@ create table if not exists public.outfits (
 create index if not exists outfits_user_id_idx
   on public.outfits (user_id);
 
--- Wear history
+-- Wear history (outfit_id nullable for solo item wears)
 create table if not exists public.wear_history (
   id text primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
-  outfit_id text not null,
+  outfit_id text,
   outfit_name text not null,
   item_ids text[] not null default '{}',
   worn_at timestamptz not null default now(),
-  occasion text
+  occasion text,
+  source text not null default 'outfit'
 );
+
+-- Safe upgrades if an older schema already exists
+alter table public.wear_history alter column outfit_id drop not null;
+alter table public.wear_history add column if not exists source text not null default 'outfit';
 
 create index if not exists wear_history_user_id_idx
   on public.wear_history (user_id);

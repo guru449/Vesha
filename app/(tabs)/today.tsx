@@ -298,11 +298,21 @@ export default function TodayScreen() {
         ) : (
           recentHistory.slice(0, 8).map((entry) => {
             const pieces = getItemsByIds(entry.itemIds).slice(0, 3);
+            const isItemWear =
+              entry.source === 'item' || (!entry.outfitId && entry.itemIds.length === 1);
             return (
               <Pressable
                 key={entry.id}
                 style={styles.historyRow}
-                onPress={() => router.push(`/outfit/${entry.outfitId}`)}
+                onPress={() => {
+                  if (isItemWear && entry.itemIds[0]) {
+                    router.push(`/item/${entry.itemIds[0]}`);
+                    return;
+                  }
+                  if (entry.outfitId) {
+                    router.push(`/outfit/${entry.outfitId}`);
+                  }
+                }}
               >
                 <View style={styles.historyThumbs}>
                   {pieces.map((item) => (
@@ -319,6 +329,7 @@ export default function TodayScreen() {
                     {entry.outfitName}
                   </Text>
                   <Text variant="caption" color={colors.muted}>
+                    {isItemWear ? 'Item · ' : 'Outfit · '}
                     {entry.occasion ? `${entry.occasion} · ` : ''}
                     {new Date(entry.wornAt).toLocaleDateString()}
                   </Text>

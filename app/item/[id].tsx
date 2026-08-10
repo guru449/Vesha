@@ -26,9 +26,14 @@ const CATEGORY_OPTIONS: ClothingCategory[] = [
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { items, updateItem, deleteItem } = useApp();
+  const { items, updateItem, deleteItem, markItemWorn, getItemWearStats } =
+    useApp();
   const insets = useSafeAreaInsets();
   const item = useMemo(() => items.find((i) => i.id === id), [items, id]);
+  const wearStats = useMemo(
+    () => (id ? getItemWearStats(id) : { wearCount: 0 }),
+    [getItemWearStats, id],
+  );
 
   const [name, setName] = useState(item?.name ?? '');
   const [category, setCategory] = useState<ClothingCategory>(
@@ -41,6 +46,8 @@ export default function ItemDetailScreen() {
   const [occasion, setOccasion] = useState(item?.attributes.occasion ?? '');
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [wearing, setWearing] = useState(false);
+  const [justWorn, setJustWorn] = useState(false);
 
   if (!item) {
     return (
@@ -68,6 +75,17 @@ export default function ItemDetailScreen() {
       setEditing(false);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const onWearToday = async () => {
+    setWearing(true);
+    try {
+      await markItemWorn(item.id);
+      setJustWorn(true);
+      setTimeout(() => setJustWorn(false), 1600);
+    } finally {
+      setWearing(false);
     }
   };
 
@@ -174,6 +192,28 @@ export default function ItemDetailScreen() {
         ) : (
           <View style={styles.form}>
             <Text variant="title">{item.name}</Text>
+            <View style={styles.wearCard}>
+              <Text variant="caption" color={colors.primary}>
+                Wear tracking
+              </Text>
+              <Text variant="bodyMedium">
+                {wearStats.wearCount === 0
+                  ? 'Not worn yet'
+                  : `Worn ${wearStats.wearCount}×`}
+              </Text>
+              <Text variant="caption" color={colors.muted}>
+                {wearStats.lastWornAt
+                  ? `Last worn ${new Date(wearStats.lastWornAt).toLocaleDateString()}`
+                  : 'Mark it when you wear this piece alone or in an outfit.'}
+              </Text>
+              <Button
+                label={
+                  wearing ? 'Saving…' : justWorn ? 'Marked worn' : 'Wear today'
+                }
+                onPress={onWearToday}
+                disabled={wearing}
+              />
+            </View>
             <AttributeField label="Category" value={item.attributes.category} />
             <AttributeField label="Color" value={item.attributes.color} />
             <AttributeField label="Pattern" value={item.attributes.pattern} />
@@ -213,6 +253,12 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: spacing.md,
+  },
+  wearCard: {
+    backgroundColor: colors.primaryMist,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
   },
   missing: {
     flex: 1,
