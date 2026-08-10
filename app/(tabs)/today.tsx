@@ -323,12 +323,14 @@ export default function TodayScreen() {
                         style={styles.cardBtn}
                       />
                     </View>
-                    <Button
-                      label="Tweak look"
-                      variant="ghost"
-                      onPress={() => tweakSuggestion(suggestion)}
-                      disabled={Boolean(busyId)}
-                    />
+                    {!suggestion.sourceOutfitId ? (
+                      <Button
+                        label="Tweak look"
+                        variant="ghost"
+                        onPress={() => tweakSuggestion(suggestion)}
+                        disabled={Boolean(busyId)}
+                      />
+                    ) : null}
                   </View>
                 </Animated.View>
               );
