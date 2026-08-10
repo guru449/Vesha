@@ -10,6 +10,7 @@ export const mockOutfits: Outfit[] = [
     createdAt: '2026-08-07T10:00:00Z',
     updatedAt: '2026-08-07T10:00:00Z',
     lastWornAt: '2026-08-07T11:00:00Z',
+    isPinned: true,
   },
   {
     id: 'outfit-2',

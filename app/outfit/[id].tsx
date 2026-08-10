@@ -20,10 +20,17 @@ import { shareOutfitCard } from '@/lib/shareOutfit';
 
 export default function OutfitDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { outfits, getItemsForOutfit, deleteOutfit, markOutfitWorn } = useApp();
+  const {
+    outfits,
+    getItemsForOutfit,
+    deleteOutfit,
+    markOutfitWorn,
+    updateOutfit,
+  } = useApp();
   const insets = useSafeAreaInsets();
   const shareRef = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
+  const [pinning, setPinning] = useState(false);
 
   const outfit = useMemo(
     () => outfits.find((item) => item.id === id),
@@ -78,6 +85,15 @@ export default function OutfitDetailScreen() {
     await markOutfitWorn(outfit.id);
   };
 
+  const onTogglePin = async () => {
+    setPinning(true);
+    try {
+      await updateOutfit(outfit.id, { isPinned: !outfit.isPinned });
+    } finally {
+      setPinning(false);
+    }
+  };
+
   const onShare = async () => {
     setSharing(true);
     try {
@@ -127,6 +143,7 @@ export default function OutfitDetailScreen() {
         <View style={styles.header}>
           <Text variant="title">{outfit.name}</Text>
           <Text variant="body" color={colors.muted}>
+            {outfit.isPinned ? 'Pinned · ' : ''}
             {outfit.occasion ? `${outfit.occasion} · ` : ''}
             {pieces.length} piece{pieces.length === 1 ? '' : 's'}
           </Text>
@@ -166,7 +183,19 @@ export default function OutfitDetailScreen() {
 
         <View style={styles.actions}>
           <Button
+            label={
+              pinning
+                ? 'Saving…'
+                : outfit.isPinned
+                  ? 'Unpin look'
+                  : 'Pin look'
+            }
+            onPress={onTogglePin}
+            disabled={pinning}
+          />
+          <Button
             label={sharing ? 'Preparing…' : 'Share look'}
+            variant="secondary"
             onPress={onShare}
             disabled={sharing || pieces.length === 0}
           />

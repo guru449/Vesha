@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -9,14 +10,17 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { useApp } from '@/context/AppContext';
 import { colors, radii, spacing } from '@/constants/theme';
+import { sortOutfits } from '@/lib/outfits';
 
 export default function OutfitsScreen() {
   const { outfits } = useApp();
+  const sorted = useMemo(() => sortOutfits(outfits), [outfits]);
+  const pinnedCount = sorted.filter((outfit) => outfit.isPinned).length;
 
   return (
     <Screen padded={false}>
       <FlatList
-        data={outfits}
+        data={sorted}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -29,8 +33,14 @@ export default function OutfitsScreen() {
               <Text variant="hero">Outfits</Text>
             </Animated.View>
             <Text variant="body" color={colors.muted}>
-              Combine pieces into looks you can reuse.
+              Combine pieces into looks you can reuse. Pin favorites to keep
+              them on top.
             </Text>
+            {pinnedCount > 0 ? (
+              <Text variant="caption" color={colors.primary}>
+                {pinnedCount} pinned
+              </Text>
+            ) : null}
             <Button
               label="Create outfit"
               onPress={() => router.push('/outfit/create')}
