@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Platform,
@@ -11,15 +11,19 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { OutfitShareCard } from '@/components/outfits/OutfitShareCard';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { useApp } from '@/context/AppContext';
 import { colors, radii, spacing } from '@/constants/theme';
+import { shareOutfitCard } from '@/lib/shareOutfit';
 
 export default function OutfitDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { outfits, getItemsForOutfit, deleteOutfit, markOutfitWorn } = useApp();
   const insets = useSafeAreaInsets();
+  const shareRef = useRef<View>(null);
+  const [sharing, setSharing] = useState(false);
 
   const outfit = useMemo(
     () => outfits.find((item) => item.id === id),
@@ -31,10 +35,21 @@ export default function OutfitDetailScreen() {
     return (
       <View style={styles.missing}>
         <Text variant="subtitle">Outfit not found</Text>
-        <Button label="Back to outfits" onPress={() => router.replace('/(tabs)/outfits')} />
+        <Button
+          label="Back to outfits"
+          onPress={() => router.replace('/(tabs)/outfits')}
+        />
       </View>
     );
   }
+
+  const showMessage = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n\n${message}`);
+      return;
+    }
+    Alert.alert(title, message);
+  };
 
   const onDelete = async () => {
     const message = `Delete “${outfit.name}”?`;
@@ -61,6 +76,30 @@ export default function OutfitDetailScreen() {
 
   const onMarkWorn = async () => {
     await markOutfitWorn(outfit.id);
+  };
+
+  const onShare = async () => {
+    setSharing(true);
+    try {
+      const result = await shareOutfitCard({
+        viewRef: shareRef,
+        outfit,
+        pieces,
+      });
+      if (result === 'unavailable') {
+        showMessage(
+          'Sharing unavailable',
+          'Sharing isn’t available on this device.',
+        );
+      }
+    } catch (error) {
+      showMessage(
+        'Could not share',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    } finally {
+      setSharing(false);
+    }
   };
 
   return (
@@ -127,7 +166,13 @@ export default function OutfitDetailScreen() {
 
         <View style={styles.actions}>
           <Button
+            label={sharing ? 'Preparing…' : 'Share look'}
+            onPress={onShare}
+            disabled={sharing || pieces.length === 0}
+          />
+          <Button
             label="Edit outfit"
+            variant="secondary"
             onPress={() =>
               router.push({
                 pathname: '/outfit/create',
@@ -143,6 +188,11 @@ export default function OutfitDetailScreen() {
           <Button label="Delete outfit" variant="danger" onPress={onDelete} />
         </View>
       </ScrollView>
+
+      {/* Off-screen share card for view-shot capture */}
+      <View style={styles.shareHost} pointerEvents="none">
+        <OutfitShareCard ref={shareRef} outfit={outfit} pieces={pieces} />
+      </View>
     </>
   );
 }
@@ -204,5 +254,11 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     backgroundColor: colors.bg,
     padding: spacing.lg,
+  },
+  shareHost: {
+    position: 'absolute',
+    left: -9999,
+    top: 0,
+    opacity: 1,
   },
 });
