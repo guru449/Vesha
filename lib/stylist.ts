@@ -7,6 +7,7 @@ import type {
 import type { WeatherSnapshot } from '@/lib/weather';
 
 const RECENT_DAYS = 3;
+const NEGLECTED_DAYS = 14;
 
 function daysAgo(iso: string): number {
   const ms = Date.now() - new Date(iso).getTime();
@@ -21,6 +22,19 @@ function recentlyWornItemIds(history: WearHistoryEntry[]): Set<string> {
     }
   }
   return recent;
+}
+
+function lastWornMap(history: WearHistoryEntry[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const entry of history) {
+    for (const id of entry.itemIds) {
+      const prev = map.get(id);
+      if (!prev || new Date(entry.wornAt) > new Date(prev)) {
+        map.set(id, entry.wornAt);
+      }
+    }
+  }
+  return map;
 }
 
 function haystackFor(item: ClothingItem): string {
@@ -137,31 +151,48 @@ export function weatherScore(
   return score;
 }
 
+/** Prefer neglected pieces so suggestions feel less repetitive. */
+function neglectScore(
+  item: ClothingItem,
+  lastWorn: Map<string, string>,
+): number {
+  const iso = item.lastWornAt || lastWorn.get(item.id);
+  if (!iso) return 3;
+  const age = daysAgo(iso);
+  if (age >= NEGLECTED_DAYS) return 2;
+  if (age >= 7) return 1;
+  return 0;
+}
+
 function itemScore(
   item: ClothingItem,
   occasion: string,
   avoid: Set<string>,
   preferences: string[],
-  weather?: WeatherSnapshot | null,
-  excluded?: Set<string>,
+  weather: WeatherSnapshot | null | undefined,
+  excluded: Set<string> | undefined,
+  lastWorn: Map<string, string>,
 ): number {
   let score =
     preferenceScore(item, preferences) +
     occasionScore(item, occasion) +
     weatherScore(item, weather) +
+    neglectScore(item, lastWorn) +
     (avoid.has(item.id) ? -5 : 2);
   if (excluded?.has(item.id)) score -= 8;
   return score;
 }
 
-function pickBest(
+function pickRanked(
   items: ClothingItem[],
   category: ClothingItem['attributes']['category'],
   avoid: Set<string>,
   preferences: string[],
   occasion: string,
-  weather?: WeatherSnapshot | null,
-  excluded?: Set<string>,
+  weather: WeatherSnapshot | null | undefined,
+  excluded: Set<string> | undefined,
+  lastWorn: Map<string, string>,
+  rankOffset = 0,
 ): ClothingItem | undefined {
   const ranked = items
     .filter((item) => item.attributes.category === category)
@@ -174,25 +205,88 @@ function pickBest(
         preferences,
         weather,
         excluded,
+        lastWorn,
       ),
     }))
     .sort((a, b) => b.score - a.score);
 
-  return ranked[0]?.item;
+  return ranked[rankOffset]?.item ?? ranked[0]?.item;
+}
+
+function joinReason(bits: string[]): string {
+  return bits.filter(Boolean).join(' · ');
 }
 
 function weatherReasonBit(weather?: WeatherSnapshot | null): string {
   if (!weather) return '';
-  if (weather.isRainy) {
-    return ` Picked with today’s rain (${Math.round(weather.feelsLikeC)}°C) in mind.`;
-  }
+  const temp = Math.round(weather.feelsLikeC);
+  if (weather.isRainy) return `rain-ready for ${temp}°C`;
   if (weather.band === 'hot' || weather.band === 'warm') {
-    return ` Kept it lighter for ${Math.round(weather.feelsLikeC)}°C.`;
+    return `light for ${temp}°C`;
   }
   if (weather.band === 'cool' || weather.band === 'cold') {
-    return ` Leaned warmer for ${Math.round(weather.feelsLikeC)}°C.`;
+    return `warmer for ${temp}°C`;
   }
-  return ` Tuned for ${Math.round(weather.feelsLikeC)}°C and ${weather.label.toLowerCase()}.`;
+  return `${temp}°C · ${weather.label.toLowerCase()}`;
+}
+
+function freshnessBit(
+  itemIds: string[],
+  avoid: Set<string>,
+  lastWorn: Map<string, string>,
+  itemsById: Map<string, ClothingItem>,
+): string {
+  const fresh = itemIds.filter((id) => !avoid.has(id));
+  if (avoid.size > 0 && fresh.length === itemIds.length) {
+    return 'skipped recent wears';
+  }
+  let oldestDays = 0;
+  let anyNever = false;
+  for (const id of itemIds) {
+    const item = itemsById.get(id);
+    const iso = item?.lastWornAt || lastWorn.get(id);
+    if (!iso) {
+      anyNever = true;
+      continue;
+    }
+    oldestDays = Math.max(oldestDays, Math.floor(daysAgo(iso)));
+  }
+  if (anyNever) return 'includes unworn pieces';
+  if (oldestDays >= NEGLECTED_DAYS) {
+    return `haven’t worn in ${oldestDays}+ days`;
+  }
+  return '';
+}
+
+function comboTitle(options: {
+  index: number;
+  occasion: string;
+  weather?: WeatherSnapshot | null;
+  dressLed: boolean;
+  leadColor?: string;
+}): string {
+  const { index, occasion, weather, dressLed, leadColor } = options;
+  if (weather?.isRainy && index === 0) return 'Rain-ready look';
+  if (
+    (weather?.band === 'hot' || weather?.band === 'warm') &&
+    index === 0
+  ) {
+    return 'Keep it light';
+  }
+  if (
+    (weather?.band === 'cool' || weather?.band === 'cold') &&
+    index === 0
+  ) {
+    return 'Layer-friendly';
+  }
+  if (dressLed && index === 0) return 'Easy dress day';
+  if (occasion === 'Work' && index === 0) return 'Work-ready';
+  if (occasion === 'Evening' && index === 0) return 'Evening polish';
+  if (occasion === 'Brunch' && index === 0) return 'Brunch outfit';
+  if (occasion === 'Travel' && index === 0) return 'Travel easy';
+  if (index === 1) return 'Change of pace';
+  if (index === 2) return leadColor ? `${leadColor} alternate` : 'Third option';
+  return 'Fresh combo';
 }
 
 function assembleFromWardrobe(
@@ -201,71 +295,34 @@ function assembleFromWardrobe(
   avoid: Set<string>,
   preferences: string[],
   index: number,
-  weather?: WeatherSnapshot | null,
-  excluded?: Set<string>,
+  weather: WeatherSnapshot | null | undefined,
+  excluded: Set<string> | undefined,
+  lastWorn: Map<string, string>,
 ): StylistSuggestion | null {
-  const dress = pickBest(
-    items,
-    'Dresses',
-    avoid,
-    preferences,
-    occasion,
-    weather,
-    excluded,
-  );
-  const top = pickBest(
-    items,
-    'Tops',
-    avoid,
-    preferences,
-    occasion,
-    weather,
-    excluded,
-  );
-  const bottom = pickBest(
-    items,
-    'Bottoms',
-    avoid,
-    preferences,
-    occasion,
-    weather,
-    excluded,
-  );
-  const shoes = pickBest(
-    items,
-    'Shoes',
-    avoid,
-    preferences,
-    occasion,
-    weather,
-    excluded,
-  );
-  const accessory =
-    pickBest(
+  const rankOffset = index; // rotate picks so look #2 ≠ look #1
+  const pick = (category: ClothingItem['attributes']['category'], offset = rankOffset) =>
+    pickRanked(
       items,
-      'Accessories',
+      category,
       avoid,
       preferences,
       occasion,
       weather,
       excluded,
-    ) ||
-    pickBest(
-      items,
-      'Jewelry',
-      avoid,
-      preferences,
-      occasion,
-      weather,
-      excluded,
+      lastWorn,
+      offset,
     );
 
+  const dress = pick('Dresses', index % 2);
+  const top = pick('Tops');
+  const bottom = pick('Bottoms', Math.max(0, index - (top ? 0 : 1)));
+  const shoes = pick('Shoes', 0);
+  const accessory = pick('Accessories', 0) || pick('Jewelry', 0);
+
+  const itemsById = new Map(items.map((item) => [item.id, item]));
   let itemIds: string[] = [];
-  let reason = '';
-  const prefNote = preferences.length
-    ? ` Tuned for ${preferences.slice(0, 2).join(' + ').toLowerCase()}.`
-    : '';
-  const weatherNote = weatherReasonBit(weather);
+  let dressLed = false;
+  const bits: string[] = [];
 
   // Prefer separates in rain / cold; dresses more on warm clear days.
   const preferDress =
@@ -275,32 +332,97 @@ function assembleFromWardrobe(
     (index % 2 === 0 || !top || !bottom);
 
   if (preferDress && dress) {
+    dressLed = true;
     itemIds = [dress.id, shoes?.id, accessory?.id].filter(Boolean) as string[];
-    reason = `A ${dress.attributes.color.toLowerCase()} dress keeps this ${occasion.toLowerCase()} look simple.${prefNote}${weatherNote}`;
+    bits.push(
+      `${dress.attributes.color.toLowerCase()} dress for ${occasion.toLowerCase()}`,
+    );
   } else if (top && bottom) {
     itemIds = [top.id, bottom.id, shoes?.id, accessory?.id].filter(
       Boolean,
     ) as string[];
-    reason = `Paired your ${top.name.toLowerCase()} with ${bottom.name.toLowerCase()} for ${occasion.toLowerCase()}.${prefNote}${weatherNote}`;
+    bits.push(
+      `${top.attributes.color.toLowerCase()} top + ${bottom.name.toLowerCase()}`,
+    );
   } else if (top || dress) {
     const lead = top || dress!;
     itemIds = [lead.id, shoes?.id].filter(Boolean) as string[];
-    reason = `Built from available pieces for a quick ${occasion.toLowerCase()} option.${prefNote}${weatherNote}`;
+    bits.push(`built from ${lead.name.toLowerCase()}`);
   }
 
   if (itemIds.length < 2) return null;
 
-  const avoidedCount = itemIds.filter((id) => !avoid.has(id)).length;
-  if (avoid.size > 0 && avoidedCount === itemIds.length) {
-    reason += ' Skipped recently worn pieces.';
+  if (preferences.length) {
+    bits.push(`fits ${preferences.slice(0, 2).join(' + ').toLowerCase()}`);
   }
+  const weatherBit = weatherReasonBit(weather);
+  if (weatherBit) bits.push(weatherBit);
+  const freshBit = freshnessBit(itemIds, avoid, lastWorn, itemsById);
+  if (freshBit) bits.push(freshBit);
+
+  const lead = itemsById.get(itemIds[0]!);
 
   return {
     id: `suggest-ward-${index}-${itemIds.join('-')}`,
-    title: index === 0 ? 'Fresh combo' : 'Alternate look',
+    title: comboTitle({
+      index,
+      occasion,
+      weather,
+      dressLed,
+      leadColor: lead?.attributes.color,
+    }),
     occasion,
     itemIds,
-    reason: reason.trim(),
+    reason: joinReason(bits),
+  };
+}
+
+export type WardrobeGapHint = {
+  message: string;
+  missing: string[];
+};
+
+/** Explain why suggestions are empty and what to add. */
+export function diagnoseWardrobeGaps(options: {
+  occasion: string;
+  items: ClothingItem[];
+}): WardrobeGapHint {
+  const { occasion, items } = options;
+  if (items.length === 0) {
+    return {
+      message: 'Your wardrobe is empty. Add a few pieces to get suggestions.',
+      missing: ['tops or a dress', 'bottoms', 'shoes'],
+    };
+  }
+
+  const counts = items.reduce(
+    (acc, item) => {
+      acc[item.attributes.category] = (acc[item.attributes.category] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  const missing: string[] = [];
+  const hasDress = (counts.Dresses || 0) > 0;
+  const hasTop = (counts.Tops || 0) > 0;
+  const hasBottom = (counts.Bottoms || 0) > 0;
+  const hasShoes = (counts.Shoes || 0) > 0;
+
+  if (!hasDress && !hasTop) missing.push('a top or dress');
+  if (!hasDress && !hasBottom) missing.push('bottoms');
+  if (!hasShoes) missing.push('shoes');
+
+  if (missing.length) {
+    return {
+      message: `Not enough pieces for a ${occasion.toLowerCase()} look yet. Add ${missing.join(' and ')}.`,
+      missing,
+    };
+  }
+
+  return {
+    message: `Couldn’t build a solid ${occasion.toLowerCase()} look from what’s tagged. Try another occasion, or add more variety.`,
+    missing: [],
   };
 }
 
@@ -327,6 +449,7 @@ export function suggestOutfitsForToday(options: {
     limit = 3,
   } = options;
   const avoid = recentlyWornItemIds(wearHistory);
+  const lastWorn = lastWornMap(wearHistory);
   const suggestions: StylistSuggestion[] = [];
   const usedItemIds = new Set<string>();
 
@@ -350,6 +473,10 @@ export function suggestOutfitsForToday(options: {
         (sum, item) => sum + weatherScore(item, weather),
         0,
       );
+      const neglectPts = pieces.reduce(
+        (sum, item) => sum + neglectScore(item, lastWorn),
+        0,
+      );
       const freshness = outfit.lastWornAt ? daysAgo(outfit.lastWornAt) : 999;
       return {
         outfit,
@@ -358,7 +485,12 @@ export function suggestOutfitsForToday(options: {
         prefScore,
         weatherPts,
         freshness,
-        total: (occasionMatch ? 10 : 0) + prefScore + weatherPts + Math.min(freshness, 30) * 0.1,
+        total:
+          (occasionMatch ? 10 : 0) +
+          prefScore +
+          weatherPts +
+          neglectPts +
+          Math.min(freshness, 30) * 0.15,
       };
     })
     .sort((a, b) => b.total - a.total);
@@ -369,12 +501,19 @@ export function suggestOutfitsForToday(options: {
 
     const wornRecently =
       outfit.lastWornAt && daysAgo(outfit.lastWornAt) <= RECENT_DAYS;
-    const prefBit =
-      prefScore > 0 && stylePreferences.length
-        ? ` Matches your ${stylePreferences[0].toLowerCase()} preference.`
-        : '';
-    const weatherBit =
-      weather && weatherPts !== 0 ? weatherReasonBit(weather) : '';
+    const bits: string[] = ['saved outfit'];
+    if (wornRecently) bits.push('worn recently');
+    else if (outfit.lastWornAt) {
+      bits.push(`last worn ${Math.floor(daysAgo(outfit.lastWornAt))}d ago`);
+    } else {
+      bits.push('not worn yet');
+    }
+    if (prefScore > 0 && stylePreferences.length) {
+      bits.push(`fits ${stylePreferences[0].toLowerCase()}`);
+    }
+    if (weather && weatherPts !== 0) {
+      bits.push(weatherReasonBit(weather));
+    }
 
     suggestions.push({
       id: `suggest-saved-${outfit.id}`,
@@ -382,15 +521,13 @@ export function suggestOutfitsForToday(options: {
       occasion: outfit.occasion || occasion,
       itemIds: outfit.itemIds,
       sourceOutfitId: outfit.id,
-      reason: wornRecently
-        ? `From your saved outfits — worn recently, but still a fit.${prefBit}${weatherBit}`
-        : `From your saved ${occasion.toLowerCase()} outfits — fresh enough to wear again.${prefBit}${weatherBit}`,
+      reason: joinReason(bits),
     });
     outfit.itemIds.forEach((id) => usedItemIds.add(id));
   }
 
   let assembleIndex = 0;
-  while (suggestions.length < limit && assembleIndex < 6) {
+  while (suggestions.length < limit && assembleIndex < 8) {
     const built = assembleFromWardrobe(
       items,
       occasion,
@@ -399,15 +536,34 @@ export function suggestOutfitsForToday(options: {
       assembleIndex,
       weather,
       usedItemIds,
+      lastWorn,
     );
     assembleIndex += 1;
-    if (!built) break;
+    if (!built) {
+      if (assembleIndex > 3) break;
+      continue;
+    }
     const duplicate = suggestions.some(
       (s) =>
         s.itemIds.slice().sort().join() === built.itemIds.slice().sort().join(),
     );
     if (!duplicate) {
-      suggestions.push(built);
+      // Re-title using suggestion slot so #2/#3 read as alternates
+      const slot = suggestions.length;
+      const lead = items.find((item) => item.id === built.itemIds[0]);
+      suggestions.push({
+        ...built,
+        title: comboTitle({
+          index: slot,
+          occasion,
+          weather,
+          dressLed: /dress/i.test(built.title) || Boolean(
+            lead && lead.attributes.category === 'Dresses',
+          ),
+          leadColor: lead?.attributes.color,
+        }),
+        id: `suggest-ward-${slot}-${built.itemIds.join('-')}`,
+      });
       built.itemIds.forEach((id) => usedItemIds.add(id));
     }
   }
