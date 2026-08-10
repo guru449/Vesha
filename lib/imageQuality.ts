@@ -26,8 +26,22 @@ export type ImageQualityReport = {
     height: number;
     meanLuma: number;
     contrast: number;
+    /** Laplacian variance — higher = sharper */
     sharpness: number;
   };
+};
+
+/** Tuned on downscaled ~160px-wide JPEGs */
+const THRESHOLDS = {
+  darkWarning: 55,
+  darkBlocker: 32,
+  brightWarning: 215,
+  brightBlocker: 238,
+  contrastWarning: 22,
+  contrastBlocker: 12,
+  // Laplacian variance on 160px images: soft phone shots often land 40–120
+  sharpWarning: 140,
+  sharpBlocker: 55,
 };
 
 function base64ToUint8Array(base64: string): Uint8Array {
@@ -55,8 +69,9 @@ function analyzePixels(
 ): { meanLuma: number; contrast: number; sharpness: number } {
   let sum = 0;
   let sumSq = 0;
-  let edgeSum = 0;
-  let edgeCount = 0;
+  let lapSum = 0;
+  let lapSumSq = 0;
+  let lapCount = 0;
   const total = width * height;
 
   for (let y = 0; y < height; y += 1) {
@@ -65,11 +80,16 @@ function analyzePixels(
       sum += luma;
       sumSq += luma * luma;
 
-      if (x < width - 1 && y < height - 1) {
-        const dx = luma - lumaAt(data, width, x + 1, y);
-        const dy = luma - lumaAt(data, width, x, y + 1);
-        edgeSum += dx * dx + dy * dy;
-        edgeCount += 1;
+      if (x > 0 && y > 0 && x < width - 1 && y < height - 1) {
+        const lap =
+          4 * luma -
+          lumaAt(data, width, x - 1, y) -
+          lumaAt(data, width, x + 1, y) -
+          lumaAt(data, width, x, y - 1) -
+          lumaAt(data, width, x, y + 1);
+        lapSum += lap;
+        lapSumSq += lap * lap;
+        lapCount += 1;
       }
     }
   }
@@ -77,7 +97,10 @@ function analyzePixels(
   const meanLuma = sum / total;
   const variance = sumSq / total - meanLuma * meanLuma;
   const contrast = Math.sqrt(Math.max(variance, 0));
-  const sharpness = edgeCount ? edgeSum / edgeCount : 0;
+  const lapMean = lapCount ? lapSum / lapCount : 0;
+  const sharpness = lapCount
+    ? Math.max(0, lapSumSq / lapCount - lapMean * lapMean)
+    : 0;
 
   return { meanLuma, contrast, sharpness };
 }
@@ -96,12 +119,12 @@ export async function analyzeImageQuality(
 
   if (width > 0 && height > 0) {
     const minSide = Math.min(width, height);
-    if (minSide < 400) {
+    if (minSide < 480) {
       issues.push({
         code: 'low_resolution',
-        severity: minSide < 240 ? 'blocker' : 'warning',
+        severity: minSide < 280 ? 'blocker' : 'warning',
         message:
-          minSide < 240
+          minSide < 280
             ? 'Photo is too small for reliable tagging. Retake closer or use a higher-res image.'
             : 'Resolution is a bit low — AI tags may be less accurate.',
       });
@@ -110,25 +133,34 @@ export async function analyzeImageQuality(
 
   const resized = await manipulateAsync(
     uri,
-    [{ resize: { width: 96 } }],
+    [{ resize: { width: 160 } }],
     {
-      compress: 0.85,
+      compress: 0.92,
       format: SaveFormat.JPEG,
       base64: true,
     },
   );
 
   if (!resized.base64) {
+    // Can't decode pixels — keep resolution issues only; don't fake a perfect score.
     return {
-      ok: issues.every((issue) => issue.severity !== 'blocker'),
-      score: issues.length ? 70 : 90,
-      issues,
+      ok: !issues.some((issue) => issue.severity === 'blocker'),
+      score: Math.max(40, 80 - issues.length * 12),
+      issues: [
+        ...issues,
+        {
+          code: 'blurry',
+          severity: 'warning',
+          message:
+            'Could not fully analyze sharpness on this device. Double-check the photo looks clear.',
+        },
+      ],
       metrics: {
         width,
         height,
-        meanLuma: 128,
-        contrast: 40,
-        sharpness: 200,
+        meanLuma: 0,
+        contrast: 0,
+        sharpness: 0,
       },
     };
   }
@@ -142,42 +174,45 @@ export async function analyzeImageQuality(
     raw.height,
   );
 
-  if (meanLuma < 45) {
+  if (meanLuma < THRESHOLDS.darkWarning) {
     issues.push({
       code: 'too_dark',
-      severity: meanLuma < 28 ? 'blocker' : 'warning',
+      severity:
+        meanLuma < THRESHOLDS.darkBlocker ? 'blocker' : 'warning',
       message:
-        meanLuma < 28
+        meanLuma < THRESHOLDS.darkBlocker
           ? 'Photo is very dark. Move to better light or turn on the flash.'
           : 'Lighting looks dim — try brighter, even light.',
     });
-  } else if (meanLuma > 225) {
+  } else if (meanLuma > THRESHOLDS.brightWarning) {
     issues.push({
       code: 'too_bright',
-      severity: meanLuma > 242 ? 'blocker' : 'warning',
+      severity:
+        meanLuma > THRESHOLDS.brightBlocker ? 'blocker' : 'warning',
       message:
-        meanLuma > 242
+        meanLuma > THRESHOLDS.brightBlocker
           ? 'Photo is blown out. Soften the light or step back from direct flash.'
           : 'Image looks washed out — reduce harsh light if you can.',
     });
   }
 
-  if (contrast < 18) {
+  if (contrast < THRESHOLDS.contrastWarning) {
     issues.push({
       code: 'low_contrast',
-      severity: contrast < 10 ? 'blocker' : 'warning',
+      severity:
+        contrast < THRESHOLDS.contrastBlocker ? 'blocker' : 'warning',
       message:
         'Low contrast — place the item on a plainer background so details stand out.',
     });
   }
 
-  // Sharpness is mean squared gradient on a 96px-wide image.
-  if (sharpness < 90) {
+  if (sharpness < THRESHOLDS.sharpWarning) {
     issues.push({
       code: 'blurry',
-      severity: sharpness < 45 ? 'blocker' : 'warning',
+      severity:
+        sharpness < THRESHOLDS.sharpBlocker ? 'blocker' : 'warning',
       message:
-        sharpness < 45
+        sharpness < THRESHOLDS.sharpBlocker
           ? 'Photo looks blurry. Hold steady and retake.'
           : 'A bit soft — a sharper shot will help AI identify fabric and color.',
     });
@@ -187,7 +222,17 @@ export async function analyzeImageQuality(
   for (const issue of issues) {
     score -= issue.severity === 'blocker' ? 28 : 12;
   }
-  score = Math.max(5, Math.min(100, score));
+  // Nudge score with continuous metrics so “almost blurry” isn’t always 100.
+  if (!issues.some((i) => i.code === 'blurry') && sharpness < 220) {
+    score -= 4;
+  }
+  if (
+    !issues.some((i) => i.code === 'too_dark' || i.code === 'too_bright') &&
+    (meanLuma < 70 || meanLuma > 200)
+  ) {
+    score -= 3;
+  }
+  score = Math.max(5, Math.min(100, Math.round(score)));
 
   return {
     ok: !issues.some((issue) => issue.severity === 'blocker'),

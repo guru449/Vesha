@@ -308,6 +308,11 @@ export default function AddItemScreen() {
               Lighting and sharpness look solid.
             </Text>
           )}
+          <Text variant="caption" color={colors.muted}>
+            Light {Math.round(quality.metrics.meanLuma)} · Contrast{' '}
+            {Math.round(quality.metrics.contrast)} · Sharpness{' '}
+            {Math.round(quality.metrics.sharpness)}
+          </Text>
           {!quality.ok && !overrideQuality ? (
             <View style={styles.qualityActions}>
               <Button
