@@ -62,7 +62,7 @@ export default function OutfitsScreen() {
               <TextInput
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Search name, occasion, piece…"
+                placeholder="Search name, color, piece…"
                 placeholderTextColor={colors.muted}
                 style={styles.searchInput}
                 autoCorrect={false}
