@@ -75,7 +75,7 @@ for (const occasion of occasions) {
             `HOT+SWEATER ${occasion} / ${weather.band}: ${s.title} → ${names}`,
           );
         }
-        if (weather.band === 'cold' && names.includes('Sage Linen Shirt') && !names.includes('Sweater') && !names.includes('Jacket')) {
+        if (weather.band === 'cold' && names.includes('Chambray Button Shirt') && !names.includes('Sweater') && !names.includes('Jacket')) {
           issues.push(
             `COLD+LINEN ${occasion}: ${s.title} → ${names}`,
           );

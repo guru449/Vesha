@@ -78,7 +78,12 @@ const STORAGE_KEYS = {
   outfits: 'vesha.outfits',
   wearHistory: 'vesha.wearHistory',
   user: 'vesha.user',
+  /** Bump when demo seed data changes so local caches refresh */
+  demoSeed: 'vesha.demoSeed',
 };
+
+/** Local demo wardrobe/outfits/history seed version. */
+export const DEMO_DATA_SEED = '2026-08-16-wardrobe-images';
 
 const AppContext = createContext<AppContextValue | null>(null);
 
@@ -88,13 +93,30 @@ async function loadLocalState(): Promise<{
   outfits: Outfit[];
   wearHistory: WearHistoryEntry[];
 }> {
-  const [storedUser, storedItems, storedOutfits, storedHistory] =
+  const [storedUser, storedItems, storedOutfits, storedHistory, storedSeed] =
     await Promise.all([
       AsyncStorage.getItem(STORAGE_KEYS.user),
       AsyncStorage.getItem(STORAGE_KEYS.items),
       AsyncStorage.getItem(STORAGE_KEYS.outfits),
       AsyncStorage.getItem(STORAGE_KEYS.wearHistory),
+      AsyncStorage.getItem(STORAGE_KEYS.demoSeed),
     ]);
+
+  const seedMatches = storedSeed === DEMO_DATA_SEED;
+  if (!seedMatches) {
+    await AsyncStorage.multiSet([
+      [STORAGE_KEYS.items, JSON.stringify(mockWardrobe)],
+      [STORAGE_KEYS.outfits, JSON.stringify(mockOutfits)],
+      [STORAGE_KEYS.wearHistory, JSON.stringify(mockWearHistory)],
+      [STORAGE_KEYS.demoSeed, DEMO_DATA_SEED],
+    ]);
+    return {
+      user: storedUser ? JSON.parse(storedUser) : demoUser,
+      items: mockWardrobe,
+      outfits: mockOutfits,
+      wearHistory: mockWearHistory,
+    };
+  }
 
   return {
     user: storedUser ? JSON.parse(storedUser) : demoUser,

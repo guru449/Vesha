@@ -12,14 +12,14 @@ export const demoUser: UserProfile = {
 export const mockWardrobe: ClothingItem[] = [
   {
     id: 'item-1',
-    name: 'Sage Linen Shirt',
+    name: 'Chambray Button Shirt',
     imageUri:
-      'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&q=80',
+      'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=600&q=80',
     attributes: {
       category: 'Tops',
-      color: 'Sage green',
+      color: 'Light blue',
       pattern: 'Solid',
-      material: 'Linen',
+      material: 'Cotton',
       style: 'Relaxed',
       occasion: 'Casual',
       brand: 'Everlane',
@@ -31,7 +31,7 @@ export const mockWardrobe: ClothingItem[] = [
     id: 'item-2',
     name: 'Cream Wide Trousers',
     imageUri:
-      'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=600&q=80',
+      'https://images.unsplash.com/photo-1632282005753-29f80ed13c93?w=600&q=80',
     attributes: {
       category: 'Bottoms',
       color: 'Cream',
@@ -63,7 +63,7 @@ export const mockWardrobe: ClothingItem[] = [
     id: 'item-4',
     name: 'Leather Ankle Boots',
     imageUri:
-      'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&q=80',
+      'https://images.unsplash.com/photo-1608256246200-53e635b5b65f?w=600&q=80',
     attributes: {
       category: 'Shoes',
       color: 'Cognac',
@@ -79,7 +79,7 @@ export const mockWardrobe: ClothingItem[] = [
     id: 'item-5',
     name: 'Gold Hoop Earrings',
     imageUri:
-      'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&q=80',
+      'https://images.unsplash.com/photo-1684439673104-f5d22791c71a?w=600&q=80',
     attributes: {
       category: 'Jewelry',
       color: 'Gold',
@@ -95,7 +95,7 @@ export const mockWardrobe: ClothingItem[] = [
     id: 'item-6',
     name: 'Canvas Tote',
     imageUri:
-      'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=600&q=80',
+      'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&q=80',
     attributes: {
       category: 'Accessories',
       color: 'Natural',
@@ -111,7 +111,7 @@ export const mockWardrobe: ClothingItem[] = [
     id: 'item-7',
     name: 'Navy Crew Sweater',
     imageUri:
-      'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=600&q=80',
+      'https://images.unsplash.com/photo-1611312449545-94176309c857?w=600&q=80',
     attributes: {
       category: 'Tops',
       color: 'Navy',
@@ -127,7 +127,7 @@ export const mockWardrobe: ClothingItem[] = [
     id: 'item-8',
     name: 'Denim Jacket',
     imageUri:
-      'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=600&q=80',
+      'https://images.unsplash.com/photo-1495105787522-5334e3ffa0ef?w=600&q=80',
     attributes: {
       category: 'Tops',
       color: 'Indigo',
@@ -143,7 +143,7 @@ export const mockWardrobe: ClothingItem[] = [
     id: 'item-9',
     name: 'Black Slip Dress',
     imageUri:
-      'https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=600&q=80',
+      'https://images.unsplash.com/photo-1770294759013-a5784266a817?w=600&q=80',
     attributes: {
       category: 'Dresses',
       color: 'Black',
@@ -191,7 +191,7 @@ export const mockWardrobe: ClothingItem[] = [
     id: 'item-12',
     name: 'Black Tailored Trousers',
     imageUri:
-      'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600&q=80',
+      'https://images.unsplash.com/photo-1776267338689-e9a8a2f36799?w=600&q=80',
     attributes: {
       category: 'Bottoms',
       color: 'Black',
@@ -207,7 +207,7 @@ export const mockWardrobe: ClothingItem[] = [
     id: 'item-13',
     name: 'White Leather Sneakers',
     imageUri:
-      'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&q=80',
+      'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=600&q=80',
     attributes: {
       category: 'Shoes',
       color: 'White',
