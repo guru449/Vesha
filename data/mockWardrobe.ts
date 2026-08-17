@@ -276,6 +276,11 @@ export type AiIdentifyResult =
       suggestedName: string;
       confidence: number;
       attributes: ClothingAttributes;
+      /**
+       * Local color-only heuristic: color may be OK, but garment type
+       * was not inferred — user must pick category before trusting the name.
+       */
+      needsCategory?: boolean;
     }
   | {
       matched: false;
@@ -286,7 +291,7 @@ export type AiIdentifyResult =
 
 /**
  * Sync mock for the forced "no match" QA path.
- * Matched demos use heuristicIdentifyFromImage (samples photo color).
+ * Matched demos use heuristicIdentifyFromImage (color only).
  */
 export function mockAiIdentify(
   imageUri: string,
@@ -305,15 +310,16 @@ export function mockAiIdentify(
   return {
     matched: true,
     imageUri,
-    suggestedName: 'Casual Button Shirt',
-    confidence: 0.55,
+    suggestedName: 'New piece',
+    confidence: 0.45,
+    needsCategory: true,
     attributes: {
       category: 'Tops',
       color: 'Unknown',
       pattern: 'Solid',
-      material: 'Cotton',
-      style: 'Button-up',
-      occasion: 'Casual',
+      material: 'Unknown',
+      style: 'Unknown',
+      occasion: 'Everyday',
     },
   };
 }

@@ -26,6 +26,7 @@ import {
   identifyClothing,
   type AiIdentifyResult,
 } from '@/lib/aiIdentify';
+import { nameFromColorAndCategory } from '@/lib/nameFromTags';
 import { saveWardrobeImage } from '@/lib/uploadImage';
 
 const CATEGORY_OPTIONS: ClothingCategory[] = [
@@ -62,6 +63,9 @@ export default function ConfirmAttributesScreen() {
   const [style, setStyle] = useState(emptyManualAttributes.style);
   const [occasion, setOccasion] = useState(emptyManualAttributes.occasion);
   const [editing, setEditing] = useState(mode === 'manual');
+  const [needsCategory, setNeedsCategory] = useState(false);
+  const [categoryChosen, setCategoryChosen] = useState(false);
+  const [nameLocked, setNameLocked] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -83,6 +87,8 @@ export default function ConfirmAttributesScreen() {
       setAiSource(null);
       setAnalyzing(false);
       setEditing(true);
+      setNeedsCategory(false);
+      setCategoryChosen(false);
       return;
     }
 
@@ -99,6 +105,10 @@ export default function ConfirmAttributesScreen() {
       setSuggestion(result);
       setAiSource(result.source);
       if (result.matched) {
+        const requireCategory = Boolean(result.needsCategory);
+        setNeedsCategory(requireCategory);
+        setCategoryChosen(!requireCategory);
+        setNameLocked(false);
         setName(result.suggestedName);
         setCategory(result.attributes.category);
         setColor(result.attributes.color);
@@ -106,9 +116,13 @@ export default function ConfirmAttributesScreen() {
         setMaterial(result.attributes.material);
         setStyle(result.attributes.style);
         setOccasion(result.attributes.occasion);
-        // High confidence → one-tap; lower → open edit so tags stay trustworthy.
-        setEditing(result.confidence < HIGH_CONFIDENCE);
+        // Always edit when category is unknown; else one-tap when confident.
+        setEditing(
+          requireCategory || result.confidence < HIGH_CONFIDENCE,
+        );
       } else {
+        setNeedsCategory(false);
+        setCategoryChosen(false);
         setEditing(false);
       }
       setAnalyzing(false);
@@ -126,11 +140,28 @@ export default function ConfirmAttributesScreen() {
   const matched = suggestion?.matched === true;
   const confidencePct =
     matched && suggestion ? Math.round(suggestion.confidence * 100) : 0;
+  const canSaveTagged = !needsCategory || categoryChosen;
+
+  const onPickCategory = (value: ClothingCategory) => {
+    setCategory(value);
+    setCategoryChosen(true);
+    if (!nameLocked) {
+      setName(nameFromColorAndCategory(color, value));
+    }
+    // Sensible style defaults once the user names the garment type.
+    if (needsCategory) {
+      if (value === 'Bottoms' && style === 'Unknown') setStyle('Relaxed');
+      if (value === 'Tops' && style === 'Unknown') setStyle('Casual');
+      if (value === 'Shoes' && style === 'Unknown') setStyle('Sneaker');
+      if (value === 'Dresses' && style === 'Unknown') setStyle('Midi');
+    }
+  };
 
   const saveItem = async (options?: {
     asPhotoOnly?: boolean;
     withAiConfidence?: number;
   }) => {
+    if (!options?.asPhotoOnly && !canSaveTagged) return;
     setSaving(true);
     try {
       const persisted = await saveWardrobeImage(imageUri, user?.id);
@@ -166,7 +197,10 @@ export default function ConfirmAttributesScreen() {
 
   const summaryChips = matched
     ? [category, color, style, occasion].filter(
-        (value, index, all) => value && all.indexOf(value) === index,
+        (value, index, all) =>
+          value &&
+          value !== 'Unknown' &&
+          all.indexOf(value) === index,
       )
     : [];
 
@@ -187,6 +221,17 @@ export default function ConfirmAttributesScreen() {
             </Text>
             <Text variant="body" color={colors.muted}>
               Reading category, color, fabric, and style.
+            </Text>
+          </View>
+        ) : matched && suggestion && needsCategory ? (
+          <View style={[styles.banner, styles.bannerWarn]}>
+            <Text variant="caption" color={colors.accent}>
+              Color detected
+              {color && color !== 'Unknown' ? ` · ${color}` : ''}
+            </Text>
+            <Text variant="body" color={colors.muted}>
+              We can’t tell the garment type without live AI. Pick a category
+              below — we’ll name it for you.
             </Text>
           </View>
         ) : matched && suggestion ? (
@@ -248,7 +293,7 @@ export default function ConfirmAttributesScreen() {
               disabled={saving}
             />
           </View>
-        ) : matched && !editing ? (
+        ) : matched && !editing && !needsCategory ? (
           <View style={styles.summary}>
             <Text variant="title">{name}</Text>
             <View style={styles.chipRow}>
@@ -282,13 +327,20 @@ export default function ConfirmAttributesScreen() {
           </View>
         ) : (
           <View style={styles.form}>
-            <Input label="Name" value={name} onChangeText={setName} />
-
             <SelectChips
-              label="Category"
-              value={category}
+              label={needsCategory ? 'What is this? (required)' : 'Category'}
+              value={categoryChosen || !needsCategory ? category : undefined}
               options={CATEGORY_OPTIONS}
-              onChange={(value) => setCategory(value as ClothingCategory)}
+              onChange={(value) => onPickCategory(value as ClothingCategory)}
+            />
+
+            <Input
+              label="Name"
+              value={name}
+              onChangeText={(text) => {
+                setNameLocked(true);
+                setName(text);
+              }}
             />
 
             <AttributeField
@@ -296,27 +348,32 @@ export default function ConfirmAttributesScreen() {
               value={color}
               editable
               aiSuggested={matched}
-              onChangeText={setColor}
+              onChangeText={(text) => {
+                setColor(text);
+                if (!nameLocked && categoryChosen) {
+                  setName(nameFromColorAndCategory(text, category));
+                }
+              }}
             />
             <AttributeField
               label="Pattern"
               value={pattern}
               editable
-              aiSuggested={matched}
+              aiSuggested={matched && pattern !== 'Unknown'}
               onChangeText={setPattern}
             />
             <AttributeField
               label="Material"
               value={material}
               editable
-              aiSuggested={matched}
+              aiSuggested={matched && material !== 'Unknown'}
               onChangeText={setMaterial}
             />
             <AttributeField
               label="Style"
               value={style}
               editable
-              aiSuggested={matched}
+              aiSuggested={matched && style !== 'Unknown'}
               onChangeText={setStyle}
             />
             <AttributeField
@@ -328,17 +385,25 @@ export default function ConfirmAttributesScreen() {
             />
 
             <Button
-              label={saving ? 'Saving…' : 'Add to wardrobe'}
+              label={
+                saving
+                  ? 'Saving…'
+                  : !canSaveTagged
+                    ? 'Pick a category to continue'
+                    : 'Add to wardrobe'
+              }
               onPress={() =>
                 saveItem({
                   withAiConfidence:
-                    matched && suggestion ? suggestion.confidence : undefined,
+                    matched && suggestion && !needsCategory
+                      ? suggestion.confidence
+                      : undefined,
                 })
               }
-              disabled={saving}
+              disabled={saving || !canSaveTagged}
             />
 
-            {matched ? (
+            {matched && !needsCategory ? (
               <Pressable
                 onPress={() => setEditing(false)}
                 disabled={saving}

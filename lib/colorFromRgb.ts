@@ -26,7 +26,7 @@ export function rgbToHsl(r: number, g: number, b: number): {
 export function colorNameFromRgb(rgb: Rgb): string {
   const { h, s, l } = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
-  if (l < 0.12) return 'Black';
+  if (l < 0.18) return 'Black';
   // Near-white fabrics often carry a warm tint that spikes HSL saturation.
   if (l > 0.9) {
     if (s < 0.15) return 'White';
@@ -35,7 +35,8 @@ export function colorNameFromRgb(rgb: Rgb): string {
   }
   if (l > 0.82 && s < 0.35) return 'Ivory';
   if (s < 0.14) {
-    if (l < 0.35) return 'Charcoal';
+    if (l < 0.28) return 'Black';
+    if (l < 0.4) return 'Charcoal';
     if (l < 0.55) return 'Gray';
     if (l < 0.75) return 'Light gray';
     return 'Ivory';

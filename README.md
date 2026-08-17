@@ -58,7 +58,7 @@ supabase functions deploy identify-clothing
 | **Cloud** | Env vars set | Real auth, empty closet per user, cloud photo URLs |
 | **Live AI** | Cloud + function deployed + `OPENAI_API_KEY` | Real vision tags on **Identify with AI** |
 
-If the function isn’t deployed yet, Identify with AI falls back to a local color heuristic (not a fixed blouse) and labels the banner **Auto suggestion**.
+If the function isn’t deployed yet, Identify with AI falls back to a **color-only** local heuristic and asks you to pick the category (it will not invent “shirt” vs “pants”).
 
 Profile shows which backend mode is active (`Cloud sync · Supabase` vs `Local demo`).
 

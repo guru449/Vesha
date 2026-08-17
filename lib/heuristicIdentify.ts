@@ -4,7 +4,6 @@ import {
 } from 'expo-image-manipulator';
 import jpeg from 'jpeg-js';
 
-import type { ClothingAttributes } from '@/data/types';
 import type { AiIdentifyResult } from '@/data/mockWardrobe';
 import { colorNameFromRgb, type Rgb } from '@/lib/colorFromRgb';
 
@@ -44,7 +43,6 @@ function sampleDominantRgb(
       const g = data[i + 1] ?? 0;
       const b = data[i + 2] ?? 0;
       const luma = 0.299 * r + 0.587 * g + 0.114 * b;
-      // Skip blown highlights / deep voids typical of backgrounds.
       if (luma > 245 || luma < 18) continue;
       rSum += r;
       gSum += g;
@@ -63,31 +61,10 @@ function sampleDominantRgb(
   };
 }
 
-function attributesForColor(color: string): {
-  suggestedName: string;
-  attributes: ClothingAttributes;
-  confidence: number;
-} {
-  // Gender-neutral top naming — never default to "blouse".
-  const suggestedName = `${color} Button Shirt`;
-  return {
-    suggestedName,
-    confidence: 0.72,
-    attributes: {
-      category: 'Tops',
-      color,
-      pattern: 'Solid',
-      material: 'Cotton',
-      style: 'Button-up',
-      occasion: 'Smart casual',
-    },
-  };
-}
-
 /**
- * Local demo identifier: samples garment color from the photo.
- * Not full vision — used when live AI is unavailable so demos
- * don't always return the same "Soft Cotton Blouse / Ivory".
+ * Local fallback when live vision AI is unavailable.
+ * Only samples color — does NOT invent garment type (no fake "Button Shirt").
+ * Confirm UI must ask the user to pick category.
  */
 export async function heuristicIdentifyFromImage(
   imageUri: string,
@@ -104,7 +81,7 @@ export async function heuristicIdentifyFromImage(
     );
 
     if (!resized.base64) {
-      return fallbackIdentify(imageUri);
+      return colorOnlyResult(imageUri, 'Unknown');
     }
 
     const raw = jpeg.decode(base64ToUint8Array(resized.base64), {
@@ -116,34 +93,29 @@ export async function heuristicIdentifyFromImage(
       raw.height,
     );
     const color = colorNameFromRgb(rgb);
-    const built = attributesForColor(color);
-
-    return {
-      matched: true,
-      imageUri,
-      suggestedName: built.suggestedName,
-      confidence: built.confidence,
-      attributes: built.attributes,
-    };
+    return colorOnlyResult(imageUri, color);
   } catch (error) {
     console.warn('Heuristic identify failed', error);
-    return fallbackIdentify(imageUri);
+    return colorOnlyResult(imageUri, 'Unknown');
   }
 }
 
-function fallbackIdentify(imageUri: string): AiIdentifyResult {
+function colorOnlyResult(imageUri: string, color: string): AiIdentifyResult {
   return {
     matched: true,
     imageUri,
-    suggestedName: 'Casual Button Shirt',
-    confidence: 0.55,
+    suggestedName: color === 'Unknown' ? 'New piece' : `${color} piece`,
+    // Below HIGH_CONFIDENCE so the edit form opens; needsCategory blocks one-tap.
+    confidence: 0.45,
+    needsCategory: true,
     attributes: {
+      // Placeholder only — UI requires an explicit category tap.
       category: 'Tops',
-      color: 'Unknown',
+      color,
       pattern: 'Solid',
-      material: 'Cotton',
-      style: 'Button-up',
-      occasion: 'Casual',
+      material: 'Unknown',
+      style: 'Unknown',
+      occasion: 'Everyday',
     },
   };
 }
