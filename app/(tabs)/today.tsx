@@ -182,7 +182,7 @@ export default function TodayScreen() {
         >
           <Ionicons name="calendar-outline" size={18} color={colors.primary} />
           <Text variant="bodyMedium" color={colors.primary}>
-            Open wear log
+            This week
           </Text>
         </Pressable>
       </View>
