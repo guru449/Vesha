@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
@@ -31,6 +32,8 @@ export default function OutfitDetailScreen() {
   const shareRef = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
   const [pinning, setPinning] = useState(false);
+  const [wearing, setWearing] = useState(false);
+  const [justWorn, setJustWorn] = useState(false);
 
   const outfit = useMemo(
     () => outfits.find((item) => item.id === id),
@@ -58,6 +61,13 @@ export default function OutfitDetailScreen() {
     Alert.alert(title, message);
   };
 
+  const goEdit = () => {
+    router.push({
+      pathname: '/outfit/create',
+      params: { outfitId: outfit.id },
+    });
+  };
+
   const onDelete = async () => {
     const message = `Delete “${outfit.name}”?`;
     if (Platform.OS === 'web') {
@@ -82,7 +92,13 @@ export default function OutfitDetailScreen() {
   };
 
   const onMarkWorn = async () => {
-    await markOutfitWorn(outfit.id);
+    setWearing(true);
+    try {
+      await markOutfitWorn(outfit.id);
+      setJustWorn(true);
+    } finally {
+      setWearing(false);
+    }
   };
 
   const onTogglePin = async () => {
@@ -120,7 +136,29 @@ export default function OutfitDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: outfit.name }} />
+      <Stack.Screen
+        options={{
+          title: outfit.name,
+          headerRight: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                outfit.isPinned ? 'Unpin look' : 'Pin look'
+              }
+              disabled={pinning}
+              onPress={onTogglePin}
+              hitSlop={10}
+              style={styles.headerIcon}
+            >
+              <Ionicons
+                name={outfit.isPinned ? 'star' : 'star-outline'}
+                size={22}
+                color={outfit.isPinned ? colors.primary : colors.inkSoft}
+              />
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView
         style={styles.root}
         contentContainerStyle={[
@@ -184,14 +222,16 @@ export default function OutfitDetailScreen() {
         <View style={styles.actions}>
           <Button
             label={
-              pinning
+              wearing
                 ? 'Saving…'
-                : outfit.isPinned
-                  ? 'Unpin look'
-                  : 'Pin look'
+                : justWorn
+                  ? 'Logged for today'
+                  : outfit.lastWornAt
+                    ? 'Re-wear'
+                    : 'Wear today'
             }
-            onPress={onTogglePin}
-            disabled={pinning}
+            onPress={onMarkWorn}
+            disabled={wearing}
           />
           <Button
             label={sharing ? 'Preparing…' : 'Share look'}
@@ -199,22 +239,21 @@ export default function OutfitDetailScreen() {
             onPress={onShare}
             disabled={sharing || pieces.length === 0}
           />
-          <Button
-            label="Edit outfit"
-            variant="secondary"
-            onPress={() =>
-              router.push({
-                pathname: '/outfit/create',
-                params: { outfitId: outfit.id },
-              })
-            }
-          />
-          <Button
-            label={outfit.lastWornAt ? 'Re-wear' : 'Wear today'}
-            variant="secondary"
-            onPress={onMarkWorn}
-          />
-          <Button label="Delete outfit" variant="danger" onPress={onDelete} />
+          <View style={styles.quietRow}>
+            <Pressable onPress={goEdit} hitSlop={8}>
+              <Text variant="bodyMedium" color={colors.primary}>
+                Edit
+              </Text>
+            </Pressable>
+            <Text variant="body" color={colors.borderStrong}>
+              ·
+            </Text>
+            <Pressable onPress={onDelete} hitSlop={8}>
+              <Text variant="bodyMedium" color={colors.danger}>
+                Delete
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
 
@@ -250,6 +289,10 @@ const styles = StyleSheet.create({
   header: {
     gap: 4,
   },
+  headerIcon: {
+    padding: spacing.xs,
+    marginRight: spacing.xs,
+  },
   section: {
     gap: spacing.sm,
   },
@@ -275,6 +318,14 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.sm,
+  },
+  quietRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
   },
   missing: {
     flex: 1,
