@@ -54,11 +54,11 @@ supabase functions deploy identify-clothing
 
 | Mode | When | Behavior |
 |------|------|----------|
-| **Local demo** | Env vars missing | Skip auth, mock wardrobe, photos on device, mock AI |
+| **Local demo** | Env vars missing | Skip auth, mock wardrobe, photos on device |
 | **Cloud** | Env vars set | Real auth, empty closet per user, cloud photo URLs |
-| **Live AI** | Cloud + function deployed + `OPENAI_API_KEY` | Real vision tags on **Identify with AI** |
+| **Live AI** | Cloud + function deployed + `OPENAI_API_KEY` | Real vision tags on **Identify with live AI** |
 
-If the function isn’t deployed yet, Identify with AI falls back to a **color-only** local heuristic and asks you to pick the category (it will not invent “shirt” vs “pants”).
+**Identify with live AI** always calls the Edge Function (no silent mock tags). If Supabase isn’t configured, the Add screen shows offline status and offers **Suggest color only** (color sample + you pick category) or manual entry.
 
 Profile shows which backend mode is active (`Cloud sync · Supabase` vs `Local demo`).
 

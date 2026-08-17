@@ -18,6 +18,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { useApp } from '@/context/AppContext';
 import { emptyManualAttributes } from '@/data/mockWardrobe';
+import { isLiveAiAvailable } from '@/lib/aiIdentify';
 import {
   analyzeImageQuality,
   type ImageQualityReport,
@@ -26,7 +27,14 @@ import { saveWardrobeImage } from '@/lib/uploadImage';
 import { colors, radii, spacing } from '@/constants/theme';
 
 export default function AddItemScreen() {
-  const { addItem, pendingImageUri, setPendingImageUri, user } = useApp();
+  const {
+    addItem,
+    backendMode,
+    pendingImageUri,
+    setPendingImageUri,
+    user,
+  } = useApp();
+  const liveReady = isLiveAiAvailable();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [busy, setBusy] = useState<
     'idle' | 'picking' | 'checking' | 'ai' | 'saving'
@@ -138,6 +146,15 @@ export default function AddItemScreen() {
 
   const runAi = async (forceNoMatch = false) => {
     if (!imageUri || qualityBlocked) return;
+
+    if (!forceNoMatch && !liveReady) {
+      showMessage(
+        'Live vision AI not set up',
+        'Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to .env, deploy the identify-clothing Edge Function, and set OPENAI_API_KEY on Supabase.\n\nUntil then, use “Suggest color only” or enter details manually.',
+      );
+      return;
+    }
+
     setBusy('ai');
     setPendingImageUri(imageUri);
     router.push({
@@ -147,6 +164,15 @@ export default function AddItemScreen() {
       },
     });
     setBusy('idle');
+  };
+
+  const runColorAssist = () => {
+    if (!imageUri || qualityBlocked) return;
+    setPendingImageUri(imageUri);
+    router.push({
+      pathname: '/add/confirm',
+      params: { mode: 'color' },
+    });
   };
 
   const addAsIs = async () => {
@@ -206,6 +232,26 @@ export default function AddItemScreen() {
           Snap or upload clothing. We check lighting and sharpness before AI
           tagging.
         </Text>
+        <View
+          style={[
+            styles.aiStatus,
+            liveReady ? styles.aiStatusOn : styles.aiStatusOff,
+          ]}
+        >
+          <Ionicons
+            name={liveReady ? 'sparkles' : 'cloud-offline-outline'}
+            size={16}
+            color={liveReady ? colors.primary : colors.accent}
+          />
+          <Text
+            variant="caption"
+            color={liveReady ? colors.primary : colors.accent}
+          >
+            {liveReady
+              ? `Live vision AI ready · ${backendMode}`
+              : 'Live vision AI offline — configure Supabase + OpenAI'}
+          </Text>
+        </View>
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(120).duration(500)}>
@@ -346,10 +392,24 @@ export default function AddItemScreen() {
         {imageUri ? (
           <>
             <Button
-              label={busy === 'ai' ? 'Identifying…' : 'Identify with AI'}
+              label={
+                busy === 'ai'
+                  ? 'Identifying…'
+                  : liveReady
+                    ? 'Identify with live AI'
+                    : 'Identify with live AI (setup needed)'
+              }
               onPress={() => runAi(false)}
               disabled={disabled}
             />
+            {!liveReady ? (
+              <Button
+                label="Suggest color only"
+                variant="secondary"
+                onPress={runColorAssist}
+                disabled={disabled}
+              />
+            ) : null}
             <Button
               label={busy === 'saving' ? 'Saving…' : 'Add photo as-is'}
               variant="secondary"
@@ -362,15 +422,17 @@ export default function AddItemScreen() {
               onPress={goManual}
               disabled={disabled}
             />
-            <Pressable
-              onPress={() => runAi(true)}
-              disabled={disabled}
-              style={styles.demoLink}
-            >
-              <Text variant="caption" color={colors.muted} center>
-                Demo: simulate “AI couldn’t identify”
-              </Text>
-            </Pressable>
+            {liveReady ? (
+              <Pressable
+                onPress={() => runAi(true)}
+                disabled={disabled}
+                style={styles.demoLink}
+              >
+                <Text variant="caption" color={colors.muted} center>
+                  Demo: simulate “AI couldn’t identify”
+                </Text>
+              </Pressable>
+            ) : null}
           </>
         ) : null}
 
@@ -392,6 +454,21 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingTop: spacing.md,
     marginBottom: spacing.lg,
+  },
+  aiStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+  },
+  aiStatusOn: {
+    backgroundColor: colors.primaryMist,
+  },
+  aiStatusOff: {
+    backgroundColor: colors.accentSoft,
   },
   dropzone: {
     minHeight: 320,

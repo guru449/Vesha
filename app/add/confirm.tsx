@@ -38,7 +38,7 @@ const CATEGORY_OPTIONS: ClothingCategory[] = [
   'Accessories',
 ];
 
-type Mode = 'ai' | 'unmatched' | 'manual';
+type Mode = 'ai' | 'unmatched' | 'manual' | 'color';
 
 export default function ConfirmAttributesScreen() {
   const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
@@ -49,9 +49,12 @@ export default function ConfirmAttributesScreen() {
   const imageUri = pendingImageUri;
 
   const [suggestion, setSuggestion] = useState<AiIdentifyResult | null>(null);
-  const [aiSource, setAiSource] = useState<'ai' | 'mock' | null>(null);
+  const [aiSource, setAiSource] = useState<'ai' | 'mock' | 'color' | null>(
+    null,
+  );
+  const [liveError, setLiveError] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(
-    mode === 'ai' || mode === 'unmatched',
+    mode === 'ai' || mode === 'unmatched' || mode === 'color',
   );
   const [name, setName] = useState('New piece');
   const [category, setCategory] = useState<ClothingCategory>(
@@ -94,16 +97,18 @@ export default function ConfirmAttributesScreen() {
 
     let cancelled = false;
     setAnalyzing(true);
+    setLiveError(null);
 
     (async () => {
       const result = await identifyClothing(imageUri, {
         forceNoMatch: mode === 'unmatched',
-        forceMock: mode === 'unmatched',
+        colorAssist: mode === 'color',
       });
       if (cancelled) return;
 
       setSuggestion(result);
       setAiSource(result.source);
+      setLiveError(result.liveError ?? null);
       if (result.matched) {
         const requireCategory = Boolean(result.needsCategory);
         setNeedsCategory(requireCategory);
@@ -123,7 +128,7 @@ export default function ConfirmAttributesScreen() {
       } else {
         setNeedsCategory(false);
         setCategoryChosen(false);
-        setEditing(false);
+        setEditing(Boolean(result.liveError));
       }
       setAnalyzing(false);
     })();
@@ -230,15 +235,19 @@ export default function ConfirmAttributesScreen() {
               {color && color !== 'Unknown' ? ` · ${color}` : ''}
             </Text>
             <Text variant="body" color={colors.muted}>
-              We can’t tell the garment type without live AI. Pick a category
+              Offline color assist can’t see garment type. Pick a category
               below — we’ll name it for you.
             </Text>
           </View>
         ) : matched && suggestion ? (
           <View style={styles.banner}>
             <Text variant="caption" color={colors.primary}>
-              {aiSource === 'ai' ? 'AI suggestion' : 'Auto suggestion'} ·{' '}
-              {confidencePct}% confidence
+              {aiSource === 'ai'
+                ? 'Live vision AI'
+                : aiSource === 'color'
+                  ? 'Color assist'
+                  : 'Suggestion'}{' '}
+              · {confidencePct}% confidence
             </Text>
             <Text variant="body" color={colors.muted}>
               {suggestion.confidence >= HIGH_CONFIDENCE
@@ -251,7 +260,9 @@ export default function ConfirmAttributesScreen() {
             <Text variant="caption" color={colors.accent}>
               {mode === 'manual'
                 ? 'Manual entry'
-                : 'AI couldn’t identify this clearly'}
+                : liveError
+                  ? 'Live vision AI unavailable'
+                  : 'AI couldn’t identify this clearly'}
             </Text>
             <Text variant="body" color={colors.muted}>
               {suggestion && suggestion.matched === false
