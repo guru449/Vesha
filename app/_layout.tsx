@@ -90,7 +90,6 @@ export default function RootLayout() {
               name="outfit/create"
               options={{
                 headerShown: true,
-                headerTitle: 'Create outfit',
                 headerTintColor: colors.primary,
                 headerStyle: { backgroundColor: colors.bg },
                 headerShadowVisible: false,
