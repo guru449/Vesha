@@ -285,8 +285,8 @@ export type AiIdentifyResult =
     };
 
 /**
- * Simulated AI recognition for Phase 1.
- * Pass forceNoMatch to exercise the "couldn't identify" happy path.
+ * Sync mock for the forced "no match" QA path.
+ * Matched demos use heuristicIdentifyFromImage (samples photo color).
  */
 export function mockAiIdentify(
   imageUri: string,
@@ -305,14 +305,14 @@ export function mockAiIdentify(
   return {
     matched: true,
     imageUri,
-    suggestedName: 'Soft Cotton Blouse',
-    confidence: 0.87,
+    suggestedName: 'Casual Button Shirt',
+    confidence: 0.55,
     attributes: {
       category: 'Tops',
-      color: 'Ivory',
+      color: 'Unknown',
       pattern: 'Solid',
       material: 'Cotton',
-      style: 'Relaxed',
+      style: 'Button-up',
       occasion: 'Casual',
     },
   };

@@ -72,6 +72,14 @@ No clear clothing item:
 Rules:
 - category MUST be one of the allowed values.
 - Prefer the dominant wearable item if multiple appear.
+- Color MUST match what you see (e.g. chocolate brown, navy, ivory) — never invent a lighter/wrong color.
+- Naming must match the garment type you see:
+  - Button-front collared top → "Shirt" or "Button Shirt" (NOT "Blouse" unless it is clearly a blouse: soft/drapey, no structured collar, typically feminine cut).
+  - Crew/knit long sleeve → "Sweater" / "Crew Sweater".
+  - T-shirt → "Tee" / "T-Shirt".
+  - Trousers/pants → "Trousers" / "Pants".
+- Use gender-neutral product names when unsure (prefer Shirt over Blouse).
+- suggestedName = Color + garment type, e.g. "Chocolate Button Shirt", "Navy Crew Sweater".
 - Be concise; no markdown.`;
 
 function jsonResponse(body: unknown, status = 200) {

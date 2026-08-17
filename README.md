@@ -58,7 +58,7 @@ supabase functions deploy identify-clothing
 | **Cloud** | Env vars set | Real auth, empty closet per user, cloud photo URLs |
 | **Live AI** | Cloud + function deployed + `OPENAI_API_KEY` | Real vision tags on **Identify with AI** |
 
-If the function isn’t deployed yet, Identify with AI falls back to the demo mock and labels the banner **Demo suggestion**.
+If the function isn’t deployed yet, Identify with AI falls back to a local color heuristic (not a fixed blouse) and labels the banner **Auto suggestion**.
 
 Profile shows which backend mode is active (`Cloud sync · Supabase` vs `Local demo`).
 
@@ -105,7 +105,7 @@ npx serve dist
 - Wardrobe grid with **search** (multi-word + color synonyms, e.g. “red dress”) + category filters
 - Add item (camera/library)
   - **Photo quality check** — lighting, blur, resolution gate before tagging
-  - **Identify with AI** → confirm/correct attributes
+  - **Identify with AI** → one-tap add (edit details only if needed)
   - **Add photo as-is** → saves immediately to wardrobe
   - **Enter details manually** / AI no-match fallback
 - Item detail (view/edit/delete, **Wear today** per piece)

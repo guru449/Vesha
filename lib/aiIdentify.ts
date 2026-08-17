@@ -1,8 +1,12 @@
 import type { ClothingAttributes } from '@/data/types';
 import { mockAiIdentify, type AiIdentifyResult } from '@/data/mockWardrobe';
+import { heuristicIdentifyFromImage } from '@/lib/heuristicIdentify';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export type { AiIdentifyResult };
+
+/** Confidence at/above this can use one-tap save (form collapsed). */
+export const HIGH_CONFIDENCE = 0.75;
 
 export type IdentifyOptions = {
   /** Force the local mock "no match" path (QA) */
@@ -105,28 +109,29 @@ export async function identifyClothing(
   imageUri: string,
   options?: IdentifyOptions,
 ): Promise<AiIdentifyResult & { source: 'ai' | 'mock' }> {
-  if (options?.forceNoMatch || options?.forceMock) {
+  if (options?.forceNoMatch) {
     return {
-      ...mockAiIdentify(imageUri, { forceNoMatch: options.forceNoMatch }),
+      ...mockAiIdentify(imageUri, { forceNoMatch: true }),
       source: 'mock',
     };
   }
 
-  if (isSupabaseConfigured()) {
+  if (!options?.forceMock && isSupabaseConfigured()) {
     try {
       const live = await identifyViaEdgeFunction(imageUri);
       if (live) {
         return { ...live, source: 'ai' };
       }
     } catch (error) {
-      console.warn('Live AI identify failed, using mock', error);
+      console.warn('Live AI identify failed, using heuristic', error);
     }
   }
 
-  // Soft delay so mock still feels like analysis in demos.
-  await new Promise((resolve) => setTimeout(resolve, 900));
+  // Local / offline: sample color from the photo instead of a fixed blouse.
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  const heuristic = await heuristicIdentifyFromImage(imageUri);
   return {
-    ...mockAiIdentify(imageUri),
+    ...heuristic,
     source: 'mock',
   };
 }

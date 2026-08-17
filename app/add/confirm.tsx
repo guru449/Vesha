@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   View,
@@ -21,6 +22,7 @@ import { emptyManualAttributes } from '@/data/mockWardrobe';
 import type { ClothingCategory } from '@/constants/theme';
 import { colors, radii, spacing } from '@/constants/theme';
 import {
+  HIGH_CONFIDENCE,
   identifyClothing,
   type AiIdentifyResult,
 } from '@/lib/aiIdentify';
@@ -47,7 +49,9 @@ export default function ConfirmAttributesScreen() {
 
   const [suggestion, setSuggestion] = useState<AiIdentifyResult | null>(null);
   const [aiSource, setAiSource] = useState<'ai' | 'mock' | null>(null);
-  const [analyzing, setAnalyzing] = useState(mode === 'ai' || mode === 'unmatched');
+  const [analyzing, setAnalyzing] = useState(
+    mode === 'ai' || mode === 'unmatched',
+  );
   const [name, setName] = useState('New piece');
   const [category, setCategory] = useState<ClothingCategory>(
     emptyManualAttributes.category,
@@ -57,7 +61,7 @@ export default function ConfirmAttributesScreen() {
   const [material, setMaterial] = useState(emptyManualAttributes.material);
   const [style, setStyle] = useState(emptyManualAttributes.style);
   const [occasion, setOccasion] = useState(emptyManualAttributes.occasion);
-  const [showForm, setShowForm] = useState(mode === 'manual');
+  const [editing, setEditing] = useState(mode === 'manual');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -78,7 +82,7 @@ export default function ConfirmAttributesScreen() {
       });
       setAiSource(null);
       setAnalyzing(false);
-      setShowForm(true);
+      setEditing(true);
       return;
     }
 
@@ -102,9 +106,10 @@ export default function ConfirmAttributesScreen() {
         setMaterial(result.attributes.material);
         setStyle(result.attributes.style);
         setOccasion(result.attributes.occasion);
-        setShowForm(true);
+        // High confidence → one-tap; lower → open edit so tags stay trustworthy.
+        setEditing(result.confidence < HIGH_CONFIDENCE);
       } else {
-        setShowForm(false);
+        setEditing(false);
       }
       setAnalyzing(false);
     })();
@@ -119,6 +124,8 @@ export default function ConfirmAttributesScreen() {
   }
 
   const matched = suggestion?.matched === true;
+  const confidencePct =
+    matched && suggestion ? Math.round(suggestion.confidence * 100) : 0;
 
   const saveItem = async (options?: {
     asPhotoOnly?: boolean;
@@ -157,6 +164,12 @@ export default function ConfirmAttributesScreen() {
     }
   };
 
+  const summaryChips = matched
+    ? [category, color, style, occasion].filter(
+        (value, index, all) => value && all.indexOf(value) === index,
+      )
+    : [];
+
   return (
     <View style={styles.root}>
       <ScrollView
@@ -173,17 +186,19 @@ export default function ConfirmAttributesScreen() {
               Analyzing your piece…
             </Text>
             <Text variant="body" color={colors.muted}>
-              AI is reading category, color, fabric, and style.
+              Reading category, color, fabric, and style.
             </Text>
           </View>
         ) : matched && suggestion ? (
           <View style={styles.banner}>
             <Text variant="caption" color={colors.primary}>
-              {aiSource === 'ai' ? 'AI suggestion' : 'Demo suggestion'} ·{' '}
-              {Math.round(suggestion.confidence * 100)}% confidence
+              {aiSource === 'ai' ? 'AI suggestion' : 'Auto suggestion'} ·{' '}
+              {confidencePct}% confidence
             </Text>
             <Text variant="body" color={colors.muted}>
-              Review and correct anything that looks off before saving.
+              {suggestion.confidence >= HIGH_CONFIDENCE
+                ? 'Looks good? Add it in one tap, or edit details.'
+                : 'Double-check these tags — confidence is a bit lower.'}
             </Text>
           </View>
         ) : (
@@ -213,7 +228,7 @@ export default function ConfirmAttributesScreen() {
               Hang tight — this usually takes a couple of seconds.
             </Text>
           </View>
-        ) : !matched && !showForm ? (
+        ) : !matched && !editing ? (
           <View style={styles.actions}>
             <Button
               label={saving ? 'Saving…' : 'Add photo anyway'}
@@ -223,7 +238,7 @@ export default function ConfirmAttributesScreen() {
             <Button
               label="Enter details manually"
               variant="secondary"
-              onPress={() => setShowForm(true)}
+              onPress={() => setEditing(true)}
               disabled={saving}
             />
             <Button
@@ -232,6 +247,38 @@ export default function ConfirmAttributesScreen() {
               onPress={() => router.replace('/(tabs)/add')}
               disabled={saving}
             />
+          </View>
+        ) : matched && !editing ? (
+          <View style={styles.summary}>
+            <Text variant="title">{name}</Text>
+            <View style={styles.chipRow}>
+              {summaryChips.map((chip) => (
+                <View key={chip} style={styles.chip}>
+                  <Text variant="caption" color={colors.primary}>
+                    {chip}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <Button
+              label={saving ? 'Saving…' : 'Add to wardrobe'}
+              onPress={() =>
+                saveItem({
+                  withAiConfidence: suggestion?.confidence,
+                })
+              }
+              disabled={saving}
+            />
+            <Pressable
+              onPress={() => setEditing(true)}
+              disabled={saving}
+              accessibilityRole="button"
+              style={styles.editLink}
+            >
+              <Text variant="body" color={colors.primary}>
+                Edit details
+              </Text>
+            </Pressable>
           </View>
         ) : (
           <View style={styles.form}>
@@ -281,7 +328,7 @@ export default function ConfirmAttributesScreen() {
             />
 
             <Button
-              label={saving ? 'Saving…' : 'Save to wardrobe'}
+              label={saving ? 'Saving…' : 'Add to wardrobe'}
               onPress={() =>
                 saveItem({
                   withAiConfidence:
@@ -291,14 +338,25 @@ export default function ConfirmAttributesScreen() {
               disabled={saving}
             />
 
-            {!matched ? (
+            {matched ? (
+              <Pressable
+                onPress={() => setEditing(false)}
+                disabled={saving}
+                accessibilityRole="button"
+                style={styles.editLink}
+              >
+                <Text variant="body" color={colors.muted}>
+                  Hide details
+                </Text>
+              </Pressable>
+            ) : (
               <Button
                 label="Just add the photo"
                 variant="ghost"
                 onPress={() => saveItem({ asPhotoOnly: true })}
                 disabled={saving}
               />
-            ) : null}
+            )}
           </View>
         )}
       </ScrollView>
@@ -336,6 +394,24 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.sm,
+  },
+  summary: {
+    gap: spacing.md,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  chip: {
+    backgroundColor: colors.primaryMist,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  editLink: {
+    alignSelf: 'center',
+    paddingVertical: spacing.xs,
   },
   form: {
     gap: spacing.md,
