@@ -12,10 +12,12 @@ import { useApp } from '@/context/AppContext';
 import { colors, radii, spacing } from '@/constants/theme';
 import type { ClothingItem, WearHistoryEntry } from '@/data/types';
 import {
-  buildWornMonthSections,
+  buildEarlierMonthSections,
+  buildThisWeek,
   formatDayHeading,
   previewItemsForDay,
   toDayKey,
+  type WeekDay,
   type WornDay,
 } from '@/lib/wearCalendar';
 
@@ -185,13 +187,85 @@ function DayRow({
   );
 }
 
+function WeekDayCell({
+  day,
+  selected,
+  onPress,
+  itemsById,
+}: {
+  day: WeekDay;
+  selected: boolean;
+  onPress: () => void;
+  itemsById: Map<string, ClothingItem>;
+}) {
+  const thumb = previewItemsForDay(day.entries, itemsById, 1)[0];
+  const hasLooks = day.entries.length > 0;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected, disabled: day.isFuture }}
+      accessibilityLabel={`${day.label}${hasLooks ? `, ${day.entries.length} looks` : day.isFuture ? ', upcoming' : ', nothing logged'}`}
+      disabled={day.isFuture}
+      onPress={onPress}
+      style={[
+        styles.weekCell,
+        day.isToday && styles.weekCellToday,
+        selected && styles.weekCellSelected,
+        day.isFuture && styles.weekCellFuture,
+      ]}
+    >
+      <Text
+        variant="caption"
+        color={
+          day.isFuture
+            ? colors.borderStrong
+            : day.isToday || selected
+              ? colors.primary
+              : colors.muted
+        }
+      >
+        {day.weekdayShort}
+      </Text>
+      <Text
+        variant="bodyMedium"
+        color={
+          day.isFuture
+            ? colors.borderStrong
+            : day.isToday || selected
+              ? colors.primary
+              : colors.ink
+        }
+      >
+        {Number(day.key.slice(-2))}
+      </Text>
+      {hasLooks && thumb ? (
+        <Image
+          source={{ uri: thumb.imageUri }}
+          style={styles.weekThumb}
+          contentFit="cover"
+        />
+      ) : (
+        <View
+          style={[
+            styles.weekDot,
+            hasLooks && styles.weekDotFilled,
+            day.isFuture && styles.weekDotFuture,
+          ]}
+        />
+      )}
+    </Pressable>
+  );
+}
+
 export default function WearCalendarScreen() {
   const { wearHistory, items, getItemsByIds } = useApp();
   const insets = useSafeAreaInsets();
   const todayKey = toDayKey(new Date());
 
-  const sections = useMemo(
-    () => buildWornMonthSections(wearHistory),
+  const week = useMemo(() => buildThisWeek(wearHistory), [wearHistory]);
+  const earlierSections = useMemo(
+    () => buildEarlierMonthSections(wearHistory),
     [wearHistory],
   );
 
@@ -200,16 +274,31 @@ export default function WearCalendarScreen() {
     [items],
   );
 
-  const totalDays = sections.reduce((sum, section) => sum + section.days.length, 0);
-
-  const [expandedKey, setExpandedKey] = useState<string | null>(() => {
-    if (sections[0]?.days.some((day) => day.key === todayKey)) return todayKey;
-    return sections[0]?.days[0]?.key ?? null;
+  const [selectedKey, setSelectedKey] = useState<string>(() => {
+    const today = week.days.find((day) => day.key === todayKey);
+    if (today) return todayKey;
+    const lastWorn = [...week.days]
+      .reverse()
+      .find((day) => !day.isFuture && day.entries.length > 0);
+    return lastWorn?.key ?? todayKey;
   });
+
+  const [expandedEarlierKey, setExpandedEarlierKey] = useState<string | null>(
+    null,
+  );
+
+  const selectedDay =
+    week.days.find((day) => day.key === selectedKey) ??
+    week.days.find((day) => day.key === todayKey);
+
+  const onSelectDay = (day: WeekDay) => {
+    if (day.isFuture) return;
+    setSelectedKey(day.key);
+  };
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Wear log' }} />
+      <Stack.Screen options={{ title: 'This week' }} />
       <ScrollView
         style={styles.root}
         contentContainerStyle={[
@@ -220,30 +309,139 @@ export default function WearCalendarScreen() {
       >
         <Animated.View entering={FadeIn.duration(350)} style={styles.header}>
           <Text variant="caption" color={colors.primary}>
-            Only days you logged
+            {week.rangeLabel}
           </Text>
-          <Text variant="title">Wear log</Text>
+          <Text variant="title">This week</Text>
           <Text variant="body" color={colors.muted}>
-            Compact history of what you wore, through today. Tap a day to
-            expand — or log a forgotten look.
+            What you wore Mon–Sun. Tap a day to review or log a forgotten look.
           </Text>
           <Text variant="caption" color={colors.muted}>
-            {totalDays} day{totalDays === 1 ? '' : 's'} · {wearHistory.length}{' '}
-            wear{wearHistory.length === 1 ? '' : 's'}
+            {week.wornDayCount} of {week.days.filter((d) => !d.isFuture).length}{' '}
+            days logged · {week.wearCount} wear
+            {week.wearCount === 1 ? '' : 's'}
           </Text>
-          <Button
-            label="Log a look"
-            onPress={() => router.push('/log-wear')}
-            style={styles.logBtn}
-          />
         </Animated.View>
 
-        {sections.length === 0 ? (
+        <Animated.View
+          entering={FadeInDown.delay(60).duration(350)}
+          style={styles.weekStrip}
+        >
+          {week.days.map((day) => (
+            <WeekDayCell
+              key={day.key}
+              day={day}
+              selected={selectedKey === day.key}
+              onPress={() => onSelectDay(day)}
+              itemsById={itemsById}
+            />
+          ))}
+        </Animated.View>
+
+        {selectedDay ? (
+          <View style={styles.selectedPanel}>
+            <View style={styles.selectedHead}>
+              <View style={styles.selectedHeadText}>
+                <Text variant="subtitle">
+                  {selectedDay.isToday ? 'Today' : selectedDay.weekdayShort}
+                </Text>
+                <Text variant="caption" color={colors.muted}>
+                  {formatDayHeading(selectedDay.key)}
+                </Text>
+              </View>
+              {!selectedDay.isFuture ? (
+                <Pressable
+                  style={styles.logChip}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/log-wear',
+                      params: { day: selectedDay.key },
+                    })
+                  }
+                >
+                  <Ionicons name="add" size={16} color={colors.primary} />
+                  <Text variant="caption" color={colors.primary}>
+                    Log look
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            {selectedDay.entries.length === 0 ? (
+              <View style={styles.emptyDay}>
+                <Text variant="bodyMedium">Nothing logged</Text>
+                <Text variant="body" color={colors.muted}>
+                  {selectedDay.isToday
+                    ? 'Wear something from Today, or log a look you already wore.'
+                    : 'Forgot to log? Add what you wore this day.'}
+                </Text>
+                <Button
+                  label="Log a look"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/log-wear',
+                      params: { day: selectedDay.key },
+                    })
+                  }
+                />
+                {selectedDay.isToday ? (
+                  <Button
+                    label="Suggest outfits"
+                    variant="ghost"
+                    onPress={() => router.push('/(tabs)/today')}
+                  />
+                ) : null}
+              </View>
+            ) : (
+              <View style={styles.entryList}>
+                {selectedDay.entries.map((entry) => (
+                  <WearEntryCard
+                    key={entry.id}
+                    entry={entry}
+                    getItemsByIds={getItemsByIds}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        ) : null}
+
+        {earlierSections.length > 0 ? (
+          <View style={styles.earlier}>
+            <Text variant="subtitle">Earlier</Text>
+            <Text variant="caption" color={colors.muted}>
+              Looks from before this week
+            </Text>
+            {earlierSections.map((section) => (
+              <View key={section.id} style={styles.section}>
+                <Text variant="caption" color={colors.muted}>
+                  {section.label}
+                </Text>
+                <View style={styles.dayList}>
+                  {section.days.map((day, index) => (
+                    <DayRow
+                      key={day.key}
+                      day={day}
+                      index={index}
+                      expanded={expandedEarlierKey === day.key}
+                      onToggle={() =>
+                        setExpandedEarlierKey((current) =>
+                          current === day.key ? null : day.key,
+                        )
+                      }
+                      itemsById={itemsById}
+                      getItemsByIds={getItemsByIds}
+                    />
+                  ))}
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : wearHistory.length === 0 ? (
           <View style={styles.empty}>
             <Text variant="subtitle">No looks yet</Text>
             <Text variant="body" color={colors.muted}>
-              Log something you wore today or on a past day — it will show up
-              here.
+              Log something you wore today — your week strip will start to fill
+              in.
             </Text>
             <Button
               label="Log a look"
@@ -255,30 +453,7 @@ export default function WearCalendarScreen() {
               onPress={() => router.push('/(tabs)/today')}
             />
           </View>
-        ) : (
-          sections.map((section) => (
-            <View key={section.id} style={styles.section}>
-              <Text variant="subtitle">{section.label}</Text>
-              <View style={styles.dayList}>
-                {section.days.map((day, index) => (
-                  <DayRow
-                    key={day.key}
-                    day={day}
-                    index={index}
-                    expanded={expandedKey === day.key}
-                    onToggle={() =>
-                      setExpandedKey((current) =>
-                        current === day.key ? null : day.key,
-                      )
-                    }
-                    itemsById={itemsById}
-                    getItemsByIds={getItemsByIds}
-                  />
-                ))}
-              </View>
-            </View>
-          ))
-        )}
+        ) : null}
       </ScrollView>
     </>
   );
@@ -296,9 +471,87 @@ const styles = StyleSheet.create({
   header: {
     gap: spacing.sm,
   },
-  logBtn: {
-    marginTop: spacing.xs,
-    alignSelf: 'flex-start',
+  weekStrip: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  weekCell: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: 2,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minHeight: 88,
+  },
+  weekCellToday: {
+    borderColor: colors.primary,
+  },
+  weekCellSelected: {
+    backgroundColor: colors.primaryMist,
+    borderColor: colors.primary,
+  },
+  weekCellFuture: {
+    opacity: 0.45,
+  },
+  weekThumb: {
+    width: 28,
+    height: 28,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceMuted,
+  },
+  weekDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    marginTop: 2,
+  },
+  weekDotFilled: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  weekDotFuture: {
+    borderColor: colors.border,
+  },
+  selectedPanel: {
+    gap: spacing.md,
+  },
+  selectedHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  selectedHeadText: {
+    flex: 1,
+    gap: 2,
+  },
+  logChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primaryMist,
+    borderRadius: radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  emptyDay: {
+    gap: spacing.sm,
+    backgroundColor: colors.primaryMist,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+  },
+  entryList: {
+    gap: spacing.sm,
+  },
+  earlier: {
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
   },
   empty: {
     gap: spacing.sm,
@@ -310,6 +563,7 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: spacing.sm,
+    marginTop: spacing.sm,
   },
   dayList: {
     gap: spacing.sm,

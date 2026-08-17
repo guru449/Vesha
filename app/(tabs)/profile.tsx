@@ -108,9 +108,9 @@ export default function ProfileScreen() {
         style={styles.secondaryCard}
         onPress={() => router.push('/calendar')}
       >
-        <Text variant="subtitle">Wear log</Text>
+        <Text variant="subtitle">This week</Text>
         <Text variant="body" color={colors.muted}>
-          Days you logged looks — tap to see what you wore.
+          Mon–Sun strip of what you wore — tap a day to review or log.
         </Text>
       </Pressable>
 
