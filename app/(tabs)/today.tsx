@@ -21,8 +21,8 @@ import type { StylistSuggestion } from '@/data/types';
 import {
   diagnoseWardrobeGaps,
   suggestOutfitsForToday,
-  type WardrobeGapHint,
 } from '@/lib/stylist';
+import { getTodayOnboarding } from '@/lib/todayOnboarding';
 import {
   formatWeatherSummary,
   loadWeatherForToday,
@@ -46,10 +46,14 @@ export default function TodayScreen() {
   const [suggestions, setSuggestions] = useState<StylistSuggestion[] | null>(
     null,
   );
-  const [gapHint, setGapHint] = useState<WardrobeGapHint | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
+
+  const onboarding = useMemo(
+    () => getTodayOnboarding(items, occasion),
+    [items, occasion],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +70,11 @@ export default function TodayScreen() {
     };
   }, []);
 
+  // Clear stale suggestions when the closet changes a lot (e.g. first uploads).
+  useEffect(() => {
+    setSuggestions(null);
+  }, [items.length]);
+
   const recentHistory = useMemo(
     () =>
       [...wearHistory].sort(
@@ -75,6 +84,7 @@ export default function TodayScreen() {
   );
 
   const generate = () => {
+    if (!onboarding.canSuggest) return;
     const next = suggestOutfitsForToday({
       occasion,
       items,
@@ -85,11 +95,6 @@ export default function TodayScreen() {
       limit: 3,
     });
     setSuggestions(next);
-    setGapHint(
-      next.length === 0
-        ? diagnoseWardrobeGaps({ occasion, items })
-        : null,
-    );
   };
 
   const saveSuggestion = async (suggestion: StylistSuggestion) => {
@@ -152,6 +157,9 @@ export default function TodayScreen() {
     });
   };
 
+  const showSetup = onboarding.status !== 'ready';
+  const emptySuggestHint = diagnoseWardrobeGaps({ occasion, items });
+
   return (
     <Screen padded={false} scroll>
       <View style={styles.header}>
@@ -162,8 +170,11 @@ export default function TodayScreen() {
           <Text variant="hero">Today</Text>
         </Animated.View>
         <Text variant="body" color={colors.muted}>
-          What should I wear? Suggestions use your wardrobe, preferences, and
-          today’s weather.
+          {onboarding.status === 'empty'
+            ? 'Build a small closet first — then ask what to wear.'
+            : onboarding.status === 'building'
+              ? onboarding.body
+              : 'What should I wear? Suggestions use your wardrobe, preferences, and today’s weather.'}
         </Text>
         <Pressable
           style={styles.calendarLink}
@@ -175,6 +186,51 @@ export default function TodayScreen() {
           </Text>
         </Pressable>
       </View>
+
+      {showSetup ? (
+        <Animated.View
+          entering={FadeInDown.delay(60).duration(400)}
+          style={styles.setupCard}
+        >
+          <Text variant="subtitle">{onboarding.headline}</Text>
+          <Text variant="body" color={colors.muted}>
+            {onboarding.status === 'empty'
+              ? onboarding.body
+              : `${onboarding.pieceCount} piece${onboarding.pieceCount === 1 ? '' : 's'} in your wardrobe.`}
+          </Text>
+          <View style={styles.checklist}>
+            {onboarding.steps.map((step) => (
+              <View key={step.id} style={styles.checkRow}>
+                <Ionicons
+                  name={step.done ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={20}
+                  color={step.done ? colors.primary : colors.muted}
+                />
+                <Text
+                  variant="body"
+                  color={step.done ? colors.ink : colors.muted}
+                  style={styles.checkLabel}
+                >
+                  {step.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <Button
+            label={
+              onboarding.status === 'empty'
+                ? 'Add your first piece'
+                : 'Add more pieces'
+            }
+            onPress={() => router.push('/(tabs)/add')}
+          />
+          {onboarding.canSuggest ? (
+            <Text variant="caption" color={colors.muted}>
+              Or pick an occasion below and try Suggest outfits.
+            </Text>
+          ) : null}
+        </Animated.View>
+      ) : null}
 
       <Animated.View
         entering={FadeInDown.delay(80).duration(400)}
@@ -235,31 +291,46 @@ export default function TodayScreen() {
               onPress={() => {
                 setOccasion(option);
                 setSuggestions(null);
-                setGapHint(null);
               }}
             />
           ))}
         </ScrollView>
         <Button
-          label={weatherLoading ? 'Loading weather…' : 'Suggest outfits'}
-          onPress={generate}
-          disabled={weatherLoading}
+          label={
+            weatherLoading
+              ? 'Loading weather…'
+              : !onboarding.canSuggest
+                ? 'Add pieces to unlock suggestions'
+                : suggestions
+                  ? 'Suggest again'
+                  : 'Suggest outfits'
+          }
+          onPress={
+            onboarding.canSuggest
+              ? generate
+              : () => router.push('/(tabs)/add')
+          }
+          disabled={weatherLoading && onboarding.canSuggest}
         />
       </View>
 
       {suggestions ? (
         <View style={styles.section}>
           <Text variant="subtitle">Suggestions</Text>
+          {onboarding.varietyTip ? (
+            <Text variant="caption" color={colors.muted}>
+              {onboarding.varietyTip}
+            </Text>
+          ) : null}
           {suggestions.length === 0 ? (
             <View style={styles.emptySuggest}>
               <Text variant="bodyMedium">Need a few more pieces</Text>
               <Text variant="body" color={colors.muted}>
-                {gapHint?.message ||
-                  'Not enough pieces yet. Add more items to your wardrobe.'}
+                {emptySuggestHint.message}
               </Text>
-              {gapHint?.missing.length ? (
+              {emptySuggestHint.missing.length ? (
                 <Text variant="caption" color={colors.primary}>
-                  Missing: {gapHint.missing.join(' · ')}
+                  Missing: {emptySuggestHint.missing.join(' · ')}
                 </Text>
               ) : null}
               <Button
@@ -337,6 +408,16 @@ export default function TodayScreen() {
             })
           )}
         </View>
+      ) : onboarding.status === 'ready' ? (
+        <View style={styles.section}>
+          <View style={styles.readyHint}>
+            <Text variant="bodyMedium">Ready when you are</Text>
+            <Text variant="body" color={colors.muted}>
+              Pick an occasion, then tap Suggest outfits for looks from your
+              closet.
+            </Text>
+          </View>
+        </View>
       ) : null}
 
       <View style={[styles.section, styles.historySection]}>
@@ -348,14 +429,19 @@ export default function TodayScreen() {
         </View>
 
         {recentHistory.length === 0 ? (
-          <Text variant="body" color={colors.muted}>
-            Nothing worn yet. Tap Wear today on a look to build history.
-          </Text>
+          <View style={styles.historyEmpty}>
+            <Text variant="body" color={colors.muted}>
+              {onboarding.status === 'empty'
+                ? 'Once you add pieces and wear a look, it shows up here.'
+                : 'Nothing worn yet. Suggest a look, then tap Wear today.'}
+            </Text>
+          </View>
         ) : (
           recentHistory.slice(0, 8).map((entry) => {
             const pieces = getItemsByIds(entry.itemIds).slice(0, 3);
             const isItemWear =
-              entry.source === 'item' || (!entry.outfitId && entry.itemIds.length === 1);
+              entry.source === 'item' ||
+              (!entry.outfitId && entry.itemIds.length === 1);
             return (
               <Pressable
                 key={entry.id}
@@ -416,6 +502,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
+  setupCard: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    backgroundColor: colors.primaryMist,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  checklist: {
+    gap: spacing.sm,
+    marginVertical: spacing.xs,
+  },
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  checkLabel: {
+    flex: 1,
+  },
   weatherCard: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
@@ -448,6 +554,14 @@ const styles = StyleSheet.create({
   chipRow: {
     paddingRight: spacing.md,
     marginBottom: spacing.sm,
+  },
+  readyHint: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   emptySuggest: {
     gap: spacing.sm,
@@ -497,6 +611,9 @@ const styles = StyleSheet.create({
   historyHeader: {
     gap: 2,
     marginBottom: spacing.sm,
+  },
+  historyEmpty: {
+    paddingVertical: spacing.xs,
   },
   historyRow: {
     flexDirection: 'row',
