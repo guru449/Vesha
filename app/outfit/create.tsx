@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -36,12 +37,14 @@ export default function CreateOutfitScreen() {
   );
   const [filter, setFilter] = useState<Category>('All');
   const [saving, setSaving] = useState(false);
+  const [showDetails, setShowDetails] = useState(Boolean(existing));
 
   useEffect(() => {
     if (existing) {
       setName(existing.name);
       setOccasion(existing.occasion ?? 'Casual');
       setSelectedIds(existing.itemIds);
+      setShowDetails(true);
     }
   }, [existing]);
 
@@ -49,14 +52,6 @@ export default function CreateOutfitScreen() {
     if (filter === 'All') return items;
     return items.filter((item) => item.attributes.category === filter);
   }, [items, filter]);
-
-  const selectedItems = useMemo(
-    () =>
-      selectedIds
-        .map((id) => items.find((item) => item.id === id))
-        .filter(Boolean),
-    [selectedIds, items],
-  );
 
   const toggleItem = (id: string) => {
     setSelectedIds((current) =>
@@ -66,6 +61,12 @@ export default function CreateOutfitScreen() {
     );
   };
 
+  const resolvedName = () => {
+    const trimmed = name.trim();
+    if (trimmed) return trimmed;
+    return `${occasion} look`;
+  };
+
   const onSave = async () => {
     if (selectedIds.length === 0) return;
     setSaving(true);
@@ -73,7 +74,7 @@ export default function CreateOutfitScreen() {
       const now = new Date().toISOString();
       if (existing) {
         await updateOutfit(existing.id, {
-          name: name.trim() || 'Untitled outfit',
+          name: resolvedName(),
           occasion,
           itemIds: selectedIds,
         });
@@ -82,7 +83,7 @@ export default function CreateOutfitScreen() {
         const id = `outfit-${Date.now()}`;
         await addOutfit({
           id,
-          name: name.trim() || 'Untitled outfit',
+          name: resolvedName(),
           occasion,
           itemIds: selectedIds,
           createdAt: now,
@@ -95,145 +96,176 @@ export default function CreateOutfitScreen() {
     }
   };
 
+  const canSave = selectedIds.length > 0 && !saving;
+  const saveLabel = saving
+    ? 'Saving…'
+    : existing
+      ? `Save changes · ${selectedIds.length}`
+      : selectedIds.length === 0
+        ? 'Pick at least one piece'
+        : `Save look · ${selectedIds.length}`;
+
   return (
     <>
       <Stack.Screen
-        options={{ title: existing ? 'Edit outfit' : 'Create outfit' }}
+        options={{ title: existing ? 'Edit look' : 'New look' }}
       />
       <View style={styles.root}>
         <ScrollView
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: insets.bottom + 100 },
+            { paddingBottom: insets.bottom + 110 },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <Input
-            label="Outfit name"
-            value={name}
-            onChangeText={setName}
-            placeholder="e.g. Weekend brunch"
-          />
-
-          <View style={styles.section}>
-            <Text variant="caption" color={colors.muted}>
-              Occasion
+          <View style={styles.intro}>
+            <Text variant="title">
+              {existing ? 'Update this look' : 'Build a look'}
             </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipRow}
-            >
-              {OCCASIONS.map((option) => (
-                <Chip
-                  key={option}
-                  label={option}
-                  selected={occasion === option}
-                  onPress={() => setOccasion(option)}
-                />
-              ))}
-            </ScrollView>
+            <Text variant="body" color={colors.muted}>
+              Tap pieces to add or remove. Save when it feels right.
+            </Text>
           </View>
 
-          <View style={styles.section}>
-            <Text variant="caption" color={colors.muted}>
-              Selected ({selectedItems.length})
-            </Text>
-            {selectedItems.length === 0 ? (
+          {items.length === 0 ? (
+            <View style={styles.empty}>
               <Text variant="body" color={colors.muted}>
-                Tap pieces below to build this look.
+                Your wardrobe is empty. Add a few pieces first, then come back
+                to build looks.
               </Text>
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.selectedRow}
-              >
-                {selectedItems.map((item) =>
-                  item ? (
+              <Button
+                label="Add a piece"
+                onPress={() => router.push('/(tabs)/add')}
+              />
+            </View>
+          ) : (
+            <>
+              <View style={styles.section}>
+                <View style={styles.sectionHead}>
+                  <Text variant="caption" color={colors.muted}>
+                    Your wardrobe
+                  </Text>
+                  <Text variant="caption" color={colors.primary}>
+                    {selectedIds.length} selected
+                  </Text>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chipRow}
+                >
+                  {categories.map((option) => (
+                    <Chip
+                      key={option}
+                      label={option}
+                      selected={filter === option}
+                      onPress={() => setFilter(option)}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.grid}>
+                {filteredItems.map((item) => {
+                  const selected = selectedIds.includes(item.id);
+                  return (
                     <Pressable
                       key={item.id}
                       onPress={() => toggleItem(item.id)}
-                      style={styles.selectedChip}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={`${item.name}${selected ? ', selected' : ''}`}
+                      style={[styles.piece, selected && styles.pieceSelected]}
                     >
                       <Image
                         source={{ uri: item.imageUri }}
-                        style={styles.selectedImage}
+                        style={styles.pieceImage}
                         contentFit="cover"
                       />
-                      <Text variant="caption" numberOfLines={1}>
+                      {selected ? (
+                        <View style={styles.check}>
+                          <Ionicons
+                            name="checkmark"
+                            size={14}
+                            color={colors.white}
+                          />
+                        </View>
+                      ) : null}
+                      <Text
+                        variant="caption"
+                        numberOfLines={1}
+                        style={styles.pieceName}
+                      >
                         {item.name}
                       </Text>
                     </Pressable>
-                  ) : null,
-                )}
-              </ScrollView>
-            )}
-          </View>
+                  );
+                })}
+              </View>
+            </>
+          )}
 
-          <View style={styles.section}>
-            <Text variant="caption" color={colors.muted}>
-              From your wardrobe
+          <Pressable
+            onPress={() => setShowDetails((open) => !open)}
+            style={styles.detailsToggle}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showDetails }}
+          >
+            <Text variant="bodyMedium" color={colors.primary}>
+              {showDetails ? 'Hide name & occasion' : 'Name & occasion'}
             </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipRow}
-            >
-              {categories.map((option) => (
-                <Chip
-                  key={option}
-                  label={option}
-                  selected={filter === option}
-                  onPress={() => setFilter(option)}
-                />
-              ))}
-            </ScrollView>
-          </View>
+            <Ionicons
+              name={showDetails ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={colors.primary}
+            />
+          </Pressable>
 
-          <View style={styles.grid}>
-            {filteredItems.map((item) => {
-              const selected = selectedIds.includes(item.id);
-              return (
-                <Pressable
-                  key={item.id}
-                  onPress={() => toggleItem(item.id)}
-                  style={[styles.piece, selected && styles.pieceSelected]}
+          {showDetails ? (
+            <View style={styles.details}>
+              <Input
+                label="Name"
+                value={name}
+                onChangeText={setName}
+                placeholder={`e.g. ${occasion} look`}
+              />
+              <View style={styles.section}>
+                <Text variant="caption" color={colors.muted}>
+                  Occasion
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chipRow}
                 >
-                  <Image
-                    source={{ uri: item.imageUri }}
-                    style={styles.pieceImage}
-                    contentFit="cover"
-                  />
-                  {selected ? (
-                    <View style={styles.check}>
-                      <Text variant="caption" color={colors.white}>
-                        ✓
-                      </Text>
-                    </View>
-                  ) : null}
-                  <Text variant="caption" numberOfLines={1} style={styles.pieceName}>
-                    {item.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                  {OCCASIONS.map((option) => (
+                    <Chip
+                      key={option}
+                      label={option}
+                      selected={occasion === option}
+                      onPress={() => setOccasion(option)}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+              {!name.trim() ? (
+                <Text variant="caption" color={colors.muted}>
+                  Leave the name blank to save as “{occasion} look”.
+                </Text>
+              ) : null}
+            </View>
+          ) : (
+            <Text variant="caption" color={colors.muted} style={styles.hint}>
+              Will save as “{resolvedName()}” · {occasion}
+            </Text>
+          )}
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
-          <Button
-            label={
-              saving
-                ? 'Saving…'
-                : existing
-                  ? 'Save changes'
-                  : 'Save outfit'
-            }
-            onPress={onSave}
-            disabled={saving || selectedIds.length === 0}
-          />
+        <View
+          style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}
+        >
+          <Button label={saveLabel} onPress={onSave} disabled={!canSave} />
         </View>
       </View>
     </>
@@ -247,26 +279,26 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    gap: spacing.lg,
+    gap: spacing.md,
+  },
+  intro: {
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  empty: {
+    gap: spacing.md,
+    paddingVertical: spacing.xl,
   },
   section: {
     gap: spacing.sm,
   },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   chipRow: {
     paddingRight: spacing.md,
-  },
-  selectedRow: {
-    gap: spacing.sm,
-  },
-  selectedChip: {
-    width: 88,
-    gap: 6,
-  },
-  selectedImage: {
-    width: 88,
-    height: 88,
-    borderRadius: radii.md,
-    backgroundColor: colors.surfaceMuted,
   },
   grid: {
     flexDirection: 'row',
@@ -305,6 +337,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  detailsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  details: {
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radii.lg,
+    backgroundColor: colors.primaryMist,
+  },
+  hint: {
+    marginTop: -spacing.xs,
   },
   footer: {
     position: 'absolute',
