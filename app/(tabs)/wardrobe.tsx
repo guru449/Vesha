@@ -22,6 +22,7 @@ import {
   spacing,
   type Category,
 } from '@/constants/theme';
+import { matchesSearch } from '@/lib/search';
 
 export default function WardrobeScreen() {
   const { items, user } = useApp();
@@ -29,21 +30,22 @@ export default function WardrobeScreen() {
   const [category, setCategory] = useState<Category>('All');
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
     return items.filter((item) => {
       const matchesCategory =
         category === 'All' || item.attributes.category === category;
-      const haystack = [
-        item.name,
-        item.attributes.color,
-        item.attributes.style,
-        item.attributes.material,
-        item.attributes.occasion,
-        item.attributes.category,
-      ]
-        .join(' ')
-        .toLowerCase();
-      const matchesQuery = !q || haystack.includes(q);
+      const matchesQuery = matchesSearch(
+        [
+          item.name,
+          item.attributes.color,
+          item.attributes.style,
+          item.attributes.material,
+          item.attributes.occasion,
+          item.attributes.category,
+          item.attributes.pattern,
+          item.attributes.brand ?? '',
+        ],
+        query,
+      );
       return matchesCategory && matchesQuery;
     });
   }, [items, query, category]);

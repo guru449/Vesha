@@ -54,11 +54,11 @@ supabase functions deploy identify-clothing
 
 | Mode | When | Behavior |
 |------|------|----------|
-| **Local demo** | Env vars missing | Skip auth, mock wardrobe, photos on device, mock AI |
+| **Local demo** | Env vars missing | Skip auth, mock wardrobe, photos on device |
 | **Cloud** | Env vars set | Real auth, empty closet per user, cloud photo URLs |
-| **Live AI** | Cloud + function deployed + `OPENAI_API_KEY` | Real vision tags on **Identify with AI** |
+| **Live AI** | Cloud + function deployed + `OPENAI_API_KEY` | Real vision tags on **Identify with live AI** |
 
-If the function isn’t deployed yet, Identify with AI falls back to the demo mock and labels the banner **Demo suggestion**.
+**Identify with live AI** always calls the Edge Function (no silent mock tags). If Supabase isn’t configured, the Add screen shows offline status and offers **Suggest color only** (color sample + you pick category) or manual entry.
 
 Profile shows which backend mode is active (`Cloud sync · Supabase` vs `Local demo`).
 
@@ -102,17 +102,17 @@ npx serve dist
 
 ## Features
 
-- Wardrobe grid with search + category filters
+- Wardrobe grid with **search** (multi-word + color synonyms, e.g. “red dress”) + category filters
 - Add item (camera/library)
   - **Photo quality check** — lighting, blur, resolution gate before tagging
-  - **Identify with AI** → confirm/correct attributes
+  - **Identify with AI** → one-tap add (edit details only if needed)
   - **Add photo as-is** → saves immediately to wardrobe
   - **Enter details manually** / AI no-match fallback
 - Item detail (view/edit/delete, **Wear today** per piece)
 - Wear history for outfits **and** individual items
 - **Wear log** — compact list of days you logged looks (through today); **log a forgotten look** for today or a past day
-- **Outfits** — list, create/edit, **pin favorites** (sort to top + Today boost), **Wear today** / **Re-wear**, delete, **share look**
-- **Today** — weather-aware “What should I wear?” stylist (clearer reasons, neglected-piece boost, better empty guidance); **Tweak look** on new combos before wear/save + wear history
+- **Outfits** — list, **search** (same smarter matching on name / occasion / pieces), create/edit, **pin favorites**, **Wear today** / **Re-wear**, delete, **share look**
+- **Today** — weather-aware “What should I wear?” stylist (occasion-tight saved looks, weather vetoes, richer demo closet); **Tweak look** on new combos before wear/save + wear history
 - **Insights** — most worn, neglected pieces, category/color mix
 - **Wardrobe Health** — AI-style check: utilization, versatility %, dormant items, closet gaps
 - Profile (style preferences, sign out; avatar later)

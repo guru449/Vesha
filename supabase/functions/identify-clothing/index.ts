@@ -72,6 +72,16 @@ No clear clothing item:
 Rules:
 - category MUST be one of the allowed values.
 - Prefer the dominant wearable item if multiple appear.
+- If the photo is waist-down / legs / trousers / jeans / pants (even with shoes visible), category is Bottoms — not Tops. Name it Trousers/Jeans/Pants.
+- If shoes are the clear hero and little else of the garment is shown, category is Shoes.
+- Color MUST match what you see (e.g. black, chocolate brown, navy, ivory) — never invent a lighter/wrong color. Near-black fabric → "Black" (not Charcoal) unless clearly gray.
+- Naming must match the garment type you see:
+  - Button-front collared top → "Shirt" or "Button Shirt" (NOT "Blouse" unless it is clearly a blouse: soft/drapey, no structured collar).
+  - Crew/knit long sleeve → "Sweater" / "Crew Sweater".
+  - T-shirt → "Tee" / "T-Shirt".
+  - Trousers/pants/jeans → "Trousers" / "Jeans" / "Pants" with fit (e.g. "Black Wide-Leg Trousers").
+- Use gender-neutral product names when unsure (prefer Shirt over Blouse).
+- suggestedName = Color + garment type, e.g. "Black Wide-Leg Trousers", "Chocolate Button Shirt".
 - Be concise; no markdown.`;
 
 function jsonResponse(body: unknown, status = 200) {

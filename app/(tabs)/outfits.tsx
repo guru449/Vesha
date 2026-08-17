@@ -1,7 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useMemo } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { OutfitCard } from '@/components/outfits/OutfitCard';
@@ -10,20 +16,28 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { useApp } from '@/context/AppContext';
 import { colors, radii, spacing } from '@/constants/theme';
-import { sortOutfits } from '@/lib/outfits';
+import { filterOutfits, sortOutfits } from '@/lib/outfits';
 
 export default function OutfitsScreen() {
-  const { outfits } = useApp();
-  const sorted = useMemo(() => sortOutfits(outfits), [outfits]);
-  const pinnedCount = sorted.filter((outfit) => outfit.isPinned).length;
+  const { outfits, getItemsForOutfit } = useApp();
+  const [query, setQuery] = useState('');
+
+  const visible = useMemo(() => {
+    const sorted = sortOutfits(outfits);
+    return filterOutfits(sorted, query, getItemsForOutfit);
+  }, [outfits, query, getItemsForOutfit]);
+
+  const pinnedCount = visible.filter((outfit) => outfit.isPinned).length;
+  const searching = query.trim().length > 0;
 
   return (
     <Screen padded={false}>
       <FlatList
-        data={sorted}
+        data={visible}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={styles.header}>
             <Animated.View entering={FadeIn.duration(400)}>
@@ -36,11 +50,36 @@ export default function OutfitsScreen() {
               Combine pieces into looks you can reuse. Pin favorites to keep
               them on top.
             </Text>
-            {pinnedCount > 0 ? (
-              <Text variant="caption" color={colors.primary}>
-                {pinnedCount} pinned
-              </Text>
-            ) : null}
+            <Text variant="caption" color={colors.muted}>
+              {searching
+                ? `${visible.length} of ${outfits.length} looks`
+                : `${outfits.length} look${outfits.length === 1 ? '' : 's'}`}
+              {pinnedCount > 0 ? ` · ${pinnedCount} pinned` : ''}
+            </Text>
+
+            <View style={styles.search}>
+              <Ionicons name="search" size={18} color={colors.muted} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search name, color, piece…"
+                placeholderTextColor={colors.muted}
+                style={styles.searchInput}
+                autoCorrect={false}
+                autoCapitalize="none"
+                clearButtonMode="never"
+              />
+              {query ? (
+                <Pressable onPress={() => setQuery('')} hitSlop={8}>
+                  <Ionicons
+                    name="close-circle"
+                    size={18}
+                    color={colors.muted}
+                  />
+                </Pressable>
+              ) : null}
+            </View>
+
             <Button
               label="Create outfit"
               onPress={() => router.push('/outfit/create')}
@@ -50,20 +89,43 @@ export default function OutfitsScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <View style={styles.emptyIcon}>
-              <Ionicons name="sparkles-outline" size={28} color={colors.primary} />
-            </View>
-            <Text variant="subtitle" center>
-              No outfits yet
-            </Text>
-            <Text variant="body" color={colors.muted} center>
-              Pick tops, bottoms, shoes and more from your wardrobe.
-            </Text>
-            <Button
-              label="Build your first outfit"
-              onPress={() => router.push('/outfit/create')}
-              style={{ marginTop: spacing.md }}
-            />
+            {searching ? (
+              <>
+                <Text variant="subtitle" center>
+                  No looks match
+                </Text>
+                <Text variant="body" color={colors.muted} center>
+                  Try another name, occasion, or piece — or clear search.
+                </Text>
+                <Button
+                  label="Clear search"
+                  variant="secondary"
+                  onPress={() => setQuery('')}
+                  style={{ marginTop: spacing.md }}
+                />
+              </>
+            ) : (
+              <>
+                <View style={styles.emptyIcon}>
+                  <Ionicons
+                    name="sparkles-outline"
+                    size={28}
+                    color={colors.primary}
+                  />
+                </View>
+                <Text variant="subtitle" center>
+                  No outfits yet
+                </Text>
+                <Text variant="body" color={colors.muted} center>
+                  Pick tops, bottoms, shoes and more from your wardrobe.
+                </Text>
+                <Button
+                  label="Build your first outfit"
+                  onPress={() => router.push('/outfit/create')}
+                  style={{ marginTop: spacing.md }}
+                />
+              </>
+            )}
           </View>
         }
         renderItem={({ item, index }) => (
@@ -94,6 +156,25 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     gap: spacing.sm,
     marginBottom: spacing.lg,
+  },
+  search: {
+    marginTop: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    minHeight: 48,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    fontSize: 15,
+    color: colors.ink,
+    paddingVertical: 12,
   },
   createBtn: {
     marginTop: spacing.sm,
