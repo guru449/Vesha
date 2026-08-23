@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Vesha — Product Roadmap & Development Guide</title>
+<!-- system fonts -->
+  <style>
+    :root {
+      --ink: #1c2b26;
+      --ink-soft: #3d4f47;
+      --muted: #6b7c74;
+      --bg: #f4f7f5;
+      --surface: #ffffff;
+      --primary: #2f5d50;
+      --primary-soft: #d8e8e1;
+      --primary-mist: #eef5f1;
+      --accent: #c4785a;
+      --border: #d5e0db;
+      --danger: #b85c5c;
+      --page-w: 210mm;
+    }
+
+    * { box-sizing: border-box; }
+    html { font-size: 11pt; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: "Noto Sans", "DejaVu Sans", Helvetica, sans-serif;
+      line-height: 1.55;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      width: var(--page-w);
+      margin: 0 auto 12mm;
+      padding: 16mm 15mm 14mm;
+      background: var(--surface);
+      box-shadow: 0 8px 30px rgba(28, 43, 38, 0.08);
+      position: relative;
+      break-after: page;
+      page-break-after: always;
+    }
+    .page:last-child { page-break-after: auto; break-after: auto; }
+
+    @media print {
+      body { background: white; }
+      .page {
+        margin: 0;
+        box-shadow: none;
+        width: auto;
+        min-height: 0 !important;
+        padding: 12mm 12mm 10mm;
+        break-inside: avoid-page;
+      }
+      .diagram { break-inside: avoid; }
+      table { break-inside: auto; }
+      tr { break-inside: avoid; }
+    }
+
+    h1, h2, h3, h4 {
+      font-family: "Noto Serif", "DejaVu Serif", Georgia, serif;
+      font-weight: 600;
+      line-height: 1.2;
+      margin: 0 0 0.55em;
+      color: var(--ink);
+    }
+    h1 { font-size: 28pt; letter-spacing: -0.02em; }
+    h2 {
+      font-size: 16pt;
+      border-bottom: 1.5px solid var(--primary-soft);
+      padding-bottom: 0.35em;
+      margin-top: 0;
+      margin-bottom: 0.85em;
+      color: var(--primary);
+    }
+    h3 { font-size: 12.5pt; color: var(--primary); margin-top: 1.1em; }
+    h4 { font-size: 11pt; margin-top: 0.9em; color: var(--ink-soft); }
+    p { margin: 0 0 0.75em; }
+    ul, ol { margin: 0 0 0.9em; padding-left: 1.2em; }
+    li { margin-bottom: 0.28em; }
+    strong { font-weight: 700; }
+    a { color: var(--primary); }
+
+    .eyebrow {
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 0.6em;
+    }
+    .muted { color: var(--muted); }
+    .lead { font-size: 12pt; color: var(--ink-soft); max-width: 42em; }
+
+    .cover {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        radial-gradient(120% 80% at 100% 0%, #d8e8e1 0%, transparent 55%),
+        radial-gradient(90% 60% at 0% 100%, #eef5f1 0%, transparent 50%),
+        var(--surface);
+    }
+    .cover-top { }
+    .cover-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28mm;
+    }
+    .mark {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--primary);
+      color: white;
+      display: grid; place-items: center;
+      font-family: "Noto Serif", Georgia, serif;
+      font-weight: 700;
+      font-size: 16pt;
+    }
+    .brand-name {
+      font-family: "Noto Serif", Georgia, serif;
+      font-size: 18pt;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .cover h1 { font-size: 34pt; max-width: 12em; margin-bottom: 0.4em; }
+    .cover-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 24px;
+      margin-top: 18mm;
+      padding-top: 8mm;
+      border-top: 1px solid var(--border);
+      font-size: 9.5pt;
+    }
+    .cover-meta dt { color: var(--muted); font-weight: 600; }
+    .cover-meta dd { margin: 0 0 8px; font-weight: 600; color: var(--ink); }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 1em 0 1.4em; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--primary-mist);
+      color: var(--primary);
+      font-size: 9pt;
+      font-weight: 700;
+    }
+    .pill.accent { background: #f8ebe5; color: var(--accent); }
+
+    .callout {
+      background: var(--primary-mist);
+      border-left: 4px solid var(--primary);
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 0;
+      margin: 1em 0 1.2em;
+    }
+    .callout strong { color: var(--primary); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.6em 0 1.2em;
+      font-size: 9.5pt;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      font-size: 8.5pt;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    tr:nth-child(even) td { background: var(--primary-mist); }
+    td.phase { font-weight: 700; color: var(--primary); white-space: nowrap; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 0.8em 0 1.2em;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin: 0.8em 0 1.2em;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: var(--surface);
+    }
+    .card h4 { margin-top: 0; color: var(--primary); }
+    .card.filled { background: var(--primary-mist); border-color: transparent; }
+
+    .footer-note {
+      display: flex; justify-content: space-between;
+      font-size: 8pt; color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding-top: 6px;
+      margin-top: 18px;
+    }
+
+    .toc ol { list-style: none; padding: 0; margin: 0; }
+    .toc li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 10.5pt;
+    }
+    .toc .num {
+      font-family: "Noto Serif", Georgia, serif;
+      font-weight: 700;
+      color: var(--primary);
+      min-width: 1.6em;
+    }
+    .toc .dots {
+      flex: 1;
+      border-bottom: 1px dotted var(--border);
+      transform: translateY(-4px);
+      margin: 0 8px;
+    }
+
+    .diagram {
+      margin: 1em 0 1.3em;
+      padding: 14px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f8fbf9 0%, #eef5f1 100%);
+      border: 1px solid var(--border);
+    }
+    .diagram svg { width: 100%; height: auto; display: block; }
+    .diagram-caption {
+      margin-top: 8px;
+      font-size: 8.5pt;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .phase-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1em;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: white;
+    }
+    .phase-banner .badge {
+      font-family: "Noto Serif", Georgia, serif;
+      font-size: 18pt;
+      font-weight: 700;
+      line-height: 1;
+      opacity: 0.95;
+    }
+    .phase-banner .meta { font-size: 9.5pt; opacity: 0.9; }
+    .phase-banner h3 { color: white; margin: 0 0 2px; font-size: 14pt; }
+
+    .ac { margin: 0.4em 0 1em; }
+    .ac li::marker { color: var(--primary); }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .s-now { background: var(--accent); }
+    .s-next { background: var(--primary); }
+    .s-later { background: #9bb0a7; }
+
+    .flow-steps {
+      display: flex;
+      align-items: stretch;
+      gap: 6px;
+      margin: 1em 0;
+      flex-wrap: wrap;
+    }
+    .flow-step {
+      flex: 1;
+      min-width: 90px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      font-size: 8.5pt;
+      font-weight: 600;
+    }
+    .flow-step span {
+      display: block;
+      font-size: 8pt;
+      font-weight: 500;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .flow-arrow {
+      align-self: center;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 14pt;
+    }
+
+    .tiny { font-size: 8.5pt; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <!-- ================= COVER ================= -->
+  <section class="page cover">
+    <div class="cover-top">
+      <div class="cover-brand">
+        <div class="mark">V</div>
+        <div class="brand-name">Vesha</div>
+      </div>
+      <div class="eyebrow">Product &amp; Engineering Guide</div>
+      <h1>From wardrobe database to habit-forming fashion assistant</h1>
+      <p class="lead">
+        A phase-by-phase development guide for evolving Vesha into a daily fashion companion—
+        centered on <strong>Today</strong>, <strong>Closet</strong>, and <strong>Discovery</strong>—
+        with clear sequencing, user journeys, acceptance criteria, and system flows.
+      </p>
+      <div class="pill-row">
+        <span class="pill">Product direction</span>
+        <span class="pill">UX information architecture</span>
+        <span class="pill">Phased delivery</span>
+        <span class="pill accent">Engineering reference</span>
+      </div>
+    </div>
+    <dl class="cover-meta">
+      <div>
+        <dt>Document type</dt>
+        <dd>Product Roadmap &amp; Development Spec</dd>
+        <dt>Audience</dt>
+        <dd>Founders, product, design, engineering</dd>
+      </div>
+      <div>
+        <dt>Version</dt>
+        <dd>1.0 — August 2026</dd>
+        <dt>North-star outcome</dt>
+        <dd>Open app → wear something → come back tomorrow</dd>
+      </div>
+    </dl>
+    <div class="footer-note">
+      <span>Vesha Confidential — Internal product reference</span>
+      <span>Page 1</span>
+    </div>
+  </section>
+
+  <!-- ================= TOC ================= -->
+  <section class="page">
+    <div class="eyebrow">Contents</div>
+    <h2>How to use this document</h2>
+    <p>
+      This guide is the single source of truth for Vesha’s next product era.
+      Build phases <strong>in order</strong> unless a later phase is explicitly marked optional.
+      Each phase includes goal, user value, scope, out-of-scope, key flows, and acceptance criteria
+      so engineering can estimate and ship without re-interpreting product intent.
+    </p>
+    <div class="callout">
+      <strong>Rule of thumb:</strong> every feature should move the user toward
+      <em>wearing something</em>—not only organizing clothing.
+    </div>
+    <nav class="toc">
+      <ol>
+        <li><span><span class="num">01</span> Vision &amp; product principles</span></li>
+        <li><span><span class="num">02</span> Current state → target state gap</span></li>
+        <li><span><span class="num">03</span> Information architecture (3 destinations)</span></li>
+        <li><span><span class="num">04</span> Habit-forming loops</span></li>
+        <li><span><span class="num">05</span> Phase roadmap overview</span></li>
+        <li><span><span class="num">06</span> Phase 1 — Navigation &amp; Closet redesign</span></li>
+        <li><span><span class="num">07</span> Phase 2 — Today habit core (+ 2b calendar)</span></li>
+        <li><span><span class="num">08</span> Phase 3 — Closet intelligence</span></li>
+        <li><span><span class="num">09</span> Phase 4 — Vibe Match MVP</span></li>
+        <li><span><span class="num">10</span> Phase 5 — Avatar try-on</span></li>
+        <li><span><span class="num">11</span> Phase 6 — Discovery</span></li>
+        <li><span><span class="num">12</span> Phase 7 — Social &amp; groups</span></li>
+        <li><span><span class="num">13</span> Cross-cutting systems &amp; data</span></li>
+        <li><span><span class="num">14</span> Success metrics, risks, open decisions</span></li>
+      </ol>
+    </nav>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= 01 VISION ================= -->
+  <section class="page">
+    <div class="eyebrow">01 · Vision</div>
+    <h2>Product principles</h2>
+    <p class="lead">
+      Vesha’s shift is cultural as much as technical: from “digital closet software”
+      to “the app you open when you don’t know what to wear.”
+    </p>
+
+    <div class="grid-2">
+      <div class="card filled">
+        <h4>Current identity</h4>
+        <p class="muted" style="margin:0">Digital wardrobe / DBMS — store, tag, browse, filter, and manage clothing assets.</p>
+      </div>
+      <div class="card filled">
+        <h4>Target identity</h4>
+        <p class="muted" style="margin:0">Habit-forming AI fashion assistant — decide, style, inspire, and get more value from clothes already owned.</p>
+      </div>
+    </div>
+
+    <h3>Three questions, three homes</h3>
+    <div class="grid-3">
+      <div class="card">
+        <h4>Today</h4>
+        <p><strong>What should I wear today?</strong></p>
+        <p class="tiny">Daily habit. Default landing. Weather + calendar aware. Avatar + alternatives.</p>
+      </div>
+      <div class="card">
+        <h4>Closet</h4>
+        <p><strong>What do I own?</strong></p>
+        <p class="tiny">Visual wardrobe. Image-first grid. Smart search. Pairings. Vibe Match entry.</p>
+      </div>
+      <div class="card">
+        <h4>Discovery</h4>
+        <p><strong>What could I wear?</strong></p>
+        <p class="tiny">Inspiration, AI looks, occasions, trends, social, Like → Vibe Match.</p>
+      </div>
+    </div>
+
+    <h3>Design principles for every phase</h3>
+    <ol>
+      <li><strong>Wear &gt; organize.</strong> Primary CTAs should be Wear / Create Look / Vibe Match—not Edit fields.</li>
+      <li><strong>One composition, low clutter.</strong> Prefer image + one decision over dashboards of chips.</li>
+      <li><strong>AI proposes, human confirms.</strong> Especially for tagging and vibe interpretation.</li>
+      <li><strong>Own wardrobe first.</strong> Recommendations prioritize what the user already owns before shopping.</li>
+      <li><strong>Language with vibe.</strong> Prefer moodful verbs (“Not feeling it”, “Switch the vibe”) over clinical labels.</li>
+      <li><strong>Learning loop.</strong> Wear / skip / reject / like must feed future ranking.</li>
+    </ol>
+
+    <div class="diagram">
+      <svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="North star loop">
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#2f5d50"/>
+          </marker>
+        </defs>
+        <rect x="20" y="70" width="120" height="70" rx="14" fill="#2f5d50"/>
+        <text x="80" y="102" text-anchor="middle" fill="#fff" font-family="Helvetica, sans-serif" font-size="13" font-weight="700">Open app</text>
+        <text x="80" y="120" text-anchor="middle" fill="#d8e8e1" font-family="Helvetica, sans-serif" font-size="11">→ Today</text>
+
+        <line x1="140" y1="105" x2="190" y2="105" stroke="#2f5d50" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+        <rect x="195" y="70" width="130" height="70" rx="14" fill="#fff" stroke="#2f5d50" stroke-width="2"/>
+        <text x="260" y="102" text-anchor="middle" fill="#1c2b26" font-family="Helvetica, sans-serif" font-size="13" font-weight="700">See outfit</text>
+        <text x="260" y="120" text-anchor="middle" fill="#6b7c74" font-family="Helvetica, sans-serif" font-size="11">+ avatar</text>
+
+        <line x1="325" y1="105" x2="375" y2="105" stroke="#2f5d50" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+        <rect x="380" y="70" width="130" height="70" rx="14" fill="#fff" stroke="#2f5d50" stroke-width="2"/>
+        <text x="445" y="102" text-anchor="middle" fill="#1c2b26" font-family="Helvetica, sans-serif" font-size="13" font-weight="700">Wear This</text>
+        <text x="445" y="120" text-anchor="middle" fill="#6b7c74" font-family="Helvetica, sans-serif" font-size="11">one tap</text>
+
+        <line x1="510" y1="105" x2="560" y2="105" stroke="#2f5d50" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+        <rect x="565" y="70" width="135" height="70" rx="14" fill="#d8e8e1"/>
+        <text x="632" y="102" text-anchor="middle" fill="#1c2b26" font-family="Helvetica, sans-serif" font-size="13" font-weight="700">History learns</text>
+        <text x="632" y="120" text-anchor="middle" fill="#2f5d50" font-family="Helvetica, sans-serif" font-size="11">better tomorrow</text>
+
+        <path d="M632 140 C632 190 80 190 80 140" fill="none" stroke="#c4785a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+        <text x="356" y="205" text-anchor="middle" fill="#c4785a" font-family="Helvetica, sans-serif" font-size="11" font-weight="600">Habit loop: return tomorrow morning</text>
+      </svg>
+      <div class="diagram-caption">Figure 1 — North-star daily habit loop</div>
+    </div>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= 02 GAP ================= -->
+  <section class="page">
+    <div class="eyebrow">02 · Gap analysis</div>
+    <h2>Current state → target state</h2>
+    <p>Use this table during planning to avoid rebuilding DBMS features that already exist, and to prioritize net-new assistant behaviors.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:18%">Area</th>
+          <th style="width:41%">Likely current / near-current</th>
+          <th style="width:41%">Target</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Product job</strong></td>
+          <td>Manage wardrobe items &amp; outfits</td>
+          <td>Decide what to wear; inspire; form a morning habit</td>
+        </tr>
+        <tr>
+          <td><strong>Navigation</strong></td>
+          <td>Multiple tabs / nested destinations (Wardrobe, Add, Outfits, Today, Profile, etc.)</td>
+          <td>Exactly 3 primary tabs: Today · Closet · Discovery</td>
+        </tr>
+        <tr>
+          <td><strong>Default screen</strong></td>
+          <td>Often wardrobe / closet-first</td>
+          <td>Today (always)</td>
+        </tr>
+        <tr>
+          <td><strong>Today</strong></td>
+          <td>Suggest flow may exist but can feel tool-like / multi-step</td>
+          <td>Clean primary look + avatar + 2 alts + vibe reject + Wear This</td>
+        </tr>
+        <tr>
+          <td><strong>Closet</strong></td>
+          <td>Category-first tabs; detail often 2 taps away</td>
+          <td>Image-first grid; Clothing / Footwear / Accessories only at top level</td>
+        </tr>
+        <tr>
+          <td><strong>Search</strong></td>
+          <td>Keyword / tag matching</td>
+          <td>Natural language + occasion intent + “goes with X”</td>
+        </tr>
+        <tr>
+          <td><strong>Add flow</strong></td>
+          <td>Separate Add tab; tagging confirm</td>
+          <td>Inside Closet (+); photo → AI → confirm → immediate pairings</td>
+        </tr>
+        <tr>
+          <td><strong>Vibe Match</strong></td>
+          <td>Not a first-class capability</td>
+          <td>Inspiration image → closet recreation + silhouette hacks</td>
+        </tr>
+        <tr>
+          <td><strong>Avatar</strong></td>
+          <td>Profile fields only / deferred</td>
+          <td>Outfit composed on user avatar across Today, Closet, Discovery</td>
+        </tr>
+        <tr>
+          <td><strong>Discovery</strong></td>
+          <td>Limited / absent as a destination</td>
+          <td>AI looks, occasions, trends, likes, social inspiration</td>
+        </tr>
+        <tr>
+          <td><strong>Wear logging</strong></td>
+          <td>Manual or multi-step logging surfaces</td>
+          <td>Wear This writes history automatically; no item-by-item entry</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>What to keep vs rethink</h3>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Keep &amp; extend</h4>
+        <ul>
+          <li>Wardrobe item model + attributes</li>
+          <li>AI identify / confirm tagging</li>
+          <li>Wear history as learning signal</li>
+          <li>Weather-aware scoring (if present)</li>
+          <li>Outfit entities (as compositions, not a primary tab)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Rethink / retire</h4>
+        <ul>
+          <li>Category tabs as primary Closet IA</li>
+          <li>Add as its own bottom tab</li>
+          <li>Outfits / Insights / Profile as peer tabs</li>
+          <li>Clinical “Try another” language</li>
+          <li>Manual multi-item wear entry after choosing a look</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= 03 IA ================= -->
+  <section class="page">
+    <div class="eyebrow">03 · Information architecture</div>
+    <h2>Unify navigation to three destinations</h2>
+
+    <div class="diagram">
+      <svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="720" height="280" rx="12" fill="#eef5f1"/>
+        <text x="360" y="36" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#2f5d50" font-weight="700">App shell</text>
+
+        <!-- phone chrome -->
+        <rect x="210" y="55" width="300" height="200" rx="24" fill="#fff" stroke="#2f5d50" stroke-width="2"/>
+        <rect x="230" y="75" width="260" height="120" rx="12" fill="#d8e8e1"/>
+        <text x="360" y="140" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="13" fill="#1c2b26" font-weight="700">Active destination content</text>
+
+        <rect x="230" y="205" width="260" height="36" rx="12" fill="#1c2b26"/>
+        <text x="275" y="227" text-anchor="middle" fill="#fff" font-family="Helvetica, sans-serif" font-size="11" font-weight="700">Today</text>
+        <text x="360" y="227" text-anchor="middle" fill="#d8e8e1" font-family="Helvetica, sans-serif" font-size="11" font-weight="600">Closet</text>
+        <text x="445" y="227" text-anchor="middle" fill="#d8e8e1" font-family="Helvetica, sans-serif" font-size="11" font-weight="600">Discovery</text>
+
+        <text x="80" y="120" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="11" fill="#6b7c74">Default</text>
+        <text x="80" y="138" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="11" fill="#2f5d50" font-weight="700">landing</text>
+        <path d="M130 130 H205" stroke="#2f5d50" stroke-width="2" marker-end="url(#arrow)"/>
+
+        <text x="640" y="110" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="11" fill="#6b7c74">Profile / settings</text>
+        <text x="640" y="128" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="11" fill="#6b7c74">live under Closet</text>
+        <text x="640" y="146" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="11" fill="#6b7c74">or account menu</text>
+        <text x="640" y="180" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="11" fill="#6b7c74">Add (+) lives</text>
+        <text x="640" y="198" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="11" fill="#2f5d50" font-weight="700">inside Closet</text>
+      </svg>
+      <div class="diagram-caption">Figure 2 — Target navigation shell (3 tabs only)</div>
+    </div>
+
+    <h3>Destination ownership</h3>
+    <table>
+      <thead>
+        <tr><th>Tab</th><th>Owns</th><th>Does not own</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Today</strong></td>
+          <td>Daily recommendation, context (weather/calendar), reject/regenerate, Wear This, short why</td>
+          <td>Full wardrobe management; social feed</td>
+        </tr>
+        <tr>
+          <td><strong>Closet</strong></td>
+          <td>All items grid, filters, search, add/edit items, pairings, Vibe Match from photo, wear stats</td>
+          <td>Trending content; other users’ posts</td>
+        </tr>
+        <tr>
+          <td><strong>Discovery</strong></td>
+          <td>AI looks, occasions, trends, inspiration, Like/Save, Vibe Match from liked looks</td>
+          <td>CRUD for wardrobe inventory</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Secondary surfaces (not tabs)</h3>
+    <ul>
+      <li><strong>Item detail</strong> — modal/stack from Closet</li>
+      <li><strong>Add / Confirm AI tags</strong> — flow from Closet (+)</li>
+      <li><strong>Vibe Match result</strong> — shared flow opened from Closet or Discovery</li>
+      <li><strong>Profile / preferences / avatar setup</strong> — account menu</li>
+      <li><strong>Wear history / week view</strong> — reachable from Today context or profile (supporting habit, not a 4th tab)</li>
+    </ul>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= 04 HABIT LOOPS ================= -->
+  <section class="page">
+    <div class="eyebrow">04 · Habit-forming loops</div>
+    <h2>Four loops that define Vesha</h2>
+    <p>Every major feature should map to one of these loops. If it doesn’t, question whether it belongs in MVP scope.</p>
+
+    <h3>1) Morning decision loop</h3>
+    <div class="flow-steps">
+      <div class="flow-step">Morning open<span>lands on Today</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Context<span>weather + calendar</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Primary look<span>pieces + avatar</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Wear This / Not feeling it<span>learn signal</span></div>
+    </div>
+
+    <h3>2) Inspiration → closet reality loop</h3>
+    <div class="flow-steps">
+      <div class="flow-step">Discovery / upload<span>see a vibe</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Like / Vibe Match<span>analyze style</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Closet recreation<span>+ substitutions</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Avatar preview<span>Wear or Save</span></div>
+    </div>
+
+    <h3>3) Closet utility loop</h3>
+    <div class="flow-steps">
+      <div class="flow-step">Browse / search<span>find a piece</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Item detail<span>Goes well with</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Create Look<span>compose outfit</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Wear / Save<span>history updates</span></div>
+    </div>
+
+    <h3>4) Add → immediate value loop</h3>
+    <div class="flow-steps">
+      <div class="flow-step">Photo<span>camera / library / selfie</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">AI identify<span>confirm tags</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Saved<span>zero busywork</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">3 pairings<span>“ways to wear it”</span></div>
+    </div>
+
+    <div class="diagram">
+      <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg">
+        <rect width="720" height="250" rx="12" fill="#eef5f1"/>
+        <text x="360" y="28" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#2f5d50">Learning signals → better recommendations</text>
+
+        <rect x="40" y="60" width="150" height="55" rx="12" fill="#fff" stroke="#2f5d50"/>
+        <text x="115" y="92" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="12" font-weight="700">Wear This</text>
+
+        <rect x="210" y="60" width="150" height="55" rx="12" fill="#fff" stroke="#c4785a"/>
+        <text x="285" y="92" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="12" font-weight="700">Not feeling it</text>
+
+        <rect x="380" y="60" width="150" height="55" rx="12" fill="#fff" stroke="#2f5d50"/>
+        <text x="455" y="92" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="12" font-weight="700">Like / Save</text>
+
+        <rect x="550" y="60" width="130" height="55" rx="12" fill="#fff" stroke="#2f5d50"/>
+        <text x="615" y="92" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="12" font-weight="700">Skip / ignore</text>
+
+        <rect x="160" y="150" width="400" height="70" rx="14" fill="#2f5d50"/>
+        <text x="360" y="180" text-anchor="middle" fill="#fff" font-family="Helvetica, sans-serif" font-size="13" font-weight="700">Preference + wear model</text>
+        <text x="360" y="200" text-anchor="middle" fill="#d8e8e1" font-family="Helvetica, sans-serif" font-size="11">occasion · weather · vibe · novelty · ownership fit</text>
+      </svg>
+      <div class="diagram-caption">Figure 3 — Signals that train the assistant</div>
+    </div>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= 05 ROADMAP ================= -->
+  <section class="page">
+    <div class="eyebrow">05 · Roadmap</div>
+    <h2>Phase overview — build in this order</h2>
+    <p>
+      Phases are sequenced so each release is usable alone, while unlocking the next.
+      Do not start Avatar rendering or social feed before Closet + Today habit mechanics are solid.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Phase</th>
+          <th>Name</th>
+          <th>Primary outcome</th>
+          <th>Depends on</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="phase">1</td>
+          <td>Navigation &amp; Closet redesign</td>
+          <td>3-tab IA; image-first Closet; Add inside Closet; Discovery shell</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td class="phase">2</td>
+          <td>Today habit core</td>
+          <td>Clean daily suggest, alts, vibe reject, Wear This auto-history, weather</td>
+          <td>Phase 1</td>
+        </tr>
+        <tr>
+          <td class="phase">2b</td>
+          <td>Calendar context</td>
+          <td>Meeting/dinner → dress code inference</td>
+          <td>Phase 2 + calendar permission</td>
+        </tr>
+        <tr>
+          <td class="phase">3</td>
+          <td>Closet intelligence</td>
+          <td>Intent search, taxonomy filters, pairings, post-add value</td>
+          <td>Phase 1</td>
+        </tr>
+        <tr>
+          <td class="phase">4</td>
+          <td>Vibe Match MVP</td>
+          <td>Inspiration → closet recreation + substitution hacks</td>
+          <td>Phases 1–3</td>
+        </tr>
+        <tr>
+          <td class="phase">5</td>
+          <td>Avatar try-on</td>
+          <td>Outfit visualization on user avatar across surfaces</td>
+          <td>Phases 2 &amp; 4 (can start design earlier)</td>
+        </tr>
+        <tr>
+          <td class="phase">6</td>
+          <td>Discovery</td>
+          <td>AI looks, occasions, trends, Like/Save → Vibe Match</td>
+          <td>Phases 2–4</td>
+        </tr>
+        <tr>
+          <td class="phase">7</td>
+          <td>Social &amp; groups</td>
+          <td>User inspiration, group outing / wedding matching</td>
+          <td>Phase 6</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="diagram">
+      <svg viewBox="0 0 720 160" xmlns="http://www.w3.org/2000/svg">
+        <rect width="720" height="160" rx="12" fill="#eef5f1"/>
+        <rect x="20" y="50" width="85" height="44" rx="10" fill="#2f5d50"/>
+        <text x="62" y="77" text-anchor="middle" fill="#fff" font-size="12" font-family="Helvetica, sans-serif" font-weight="700">P1 IA</text>
+        <rect x="120" y="50" width="85" height="44" rx="10" fill="#2f5d50"/>
+        <text x="162" y="77" text-anchor="middle" fill="#fff" font-size="12" font-family="Helvetica, sans-serif" font-weight="700">P2 Today</text>
+        <rect x="220" y="50" width="85" height="44" rx="10" fill="#2f5d50"/>
+        <text x="262" y="77" text-anchor="middle" fill="#fff" font-size="12" font-family="Helvetica, sans-serif" font-weight="700">P3 Closet</text>
+        <rect x="320" y="50" width="95" height="44" rx="10" fill="#2f5d50"/>
+        <text x="367" y="77" text-anchor="middle" fill="#fff" font-size="12" font-family="Helvetica, sans-serif" font-weight="700">P4 Vibe</text>
+        <rect x="430" y="50" width="85" height="44" rx="10" fill="#3d6b5d"/>
+        <text x="472" y="77" text-anchor="middle" fill="#fff" font-size="12" font-family="Helvetica, sans-serif" font-weight="700">P5 Avatar</text>
+        <rect x="530" y="50" width="85" height="44" rx="10" fill="#3d6b5d"/>
+        <text x="572" y="77" text-anchor="middle" fill="#fff" font-size="12" font-family="Helvetica, sans-serif" font-weight="700">P6 Disc.</text>
+        <rect x="630" y="50" width="70" height="44" rx="10" fill="#9bb0a7"/>
+        <text x="665" y="77" text-anchor="middle" fill="#fff" font-size="12" font-family="Helvetica, sans-serif" font-weight="700">P7</text>
+        <text x="360" y="130" text-anchor="middle" fill="#6b7c74" font-size="11" font-family="Helvetica, sans-serif">Dark = foundation · Mid = experience polish · Light = network effects</text>
+      </svg>
+      <div class="diagram-caption">Figure 4 — Delivery sequence (do not rearrange without updating dependencies)</div>
+    </div>
+
+    <div class="callout">
+      <strong>Parallelization tip:</strong> Phase 3 (Closet intelligence) can start in parallel with Phase 2 once Phase 1 navigation lands.
+      Avatar art/pipeline work can begin in design during Phase 2, but product integration waits for Phase 5.
+    </div>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= PHASE 1 ================= -->
+  <section class="page">
+    <div class="phase-banner">
+      <div class="badge">P1</div>
+      <div>
+        <h3>Navigation &amp; Closet redesign</h3>
+        <div class="meta">Goal: make Vesha feel like an assistant shell, not a DBMS toolbar</div>
+      </div>
+    </div>
+
+    <h3>User value</h3>
+    <p>Opening the app feels focused. Closet looks like a real closet wall of clothes. Adding is part of Closet, not a separate “module.”</p>
+
+    <h3>In scope</h3>
+    <ul>
+      <li>Replace bottom navigation with <strong>Today · Closet · Discovery</strong></li>
+      <li>Default route = Today (even if Today is a lightweight shell in P1)</li>
+      <li>Rename Wardrobe → Closet</li>
+      <li>Remove Tops/Bottoms/… category tabs as primary navigation</li>
+      <li>Top-level filters only: <strong>Clothing · Footwear · Accessories</strong> (+ All)</li>
+      <li>Image-first grid: full garment visible without opening detail</li>
+      <li>Move Add into Closet as persistent <strong>+</strong></li>
+      <li>Relocate Profile/settings to account entry (header or Closet overflow)</li>
+      <li>Discovery tab exists as a branded empty/coming-soon with clear promise</li>
+    </ul>
+
+    <h3>Out of scope</h3>
+    <ul>
+      <li>Full stylist redesign (Phase 2)</li>
+      <li>Intent search / Vibe Match / Avatar</li>
+      <li>Social Discovery content</li>
+    </ul>
+
+    <h3>Closet grid UX rules</h3>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Do</h4>
+        <ul>
+          <li>Large tiles, soft background, garment fills frame</li>
+          <li>Minimal text overlays (optional tiny category pip)</li>
+          <li>Tap → item detail</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Don’t</h4>
+        <ul>
+          <li>Dense metadata rows in the grid</li>
+          <li>Force category tab hopping to find items</li>
+          <li>Require 2 navigations to see the full photo</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Acceptance criteria</h3>
+    <ul class="ac">
+      <li>Only 3 primary tabs visible on iOS, Android, and web</li>
+      <li>Cold start lands on Today</li>
+      <li>Closet shows mixed items in one scrollable grid with 3 broad filters</li>
+      <li>User can add an item without leaving Closet IA</li>
+      <li>No broken deep links from old tab routes (redirects in place)</li>
+    </ul>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= PHASE 2 ================= -->
+  <section class="page">
+    <div class="phase-banner">
+      <div class="badge">P2</div>
+      <div>
+        <h3>Today — habit core</h3>
+        <div class="meta">Goal: the morning screen that forms the habit</div>
+      </div>
+    </div>
+
+    <h3>Screen composition (first viewport)</h3>
+    <ol>
+      <li><strong>Context strip</strong> — date · weather summary · (later) calendar cue</li>
+      <li><strong>Primary recommendation</strong> — title + short “why”</li>
+      <li><strong>Pieces row</strong> — clothing + footwear + accessories used</li>
+      <li><strong>Avatar panel</strong> — placeholder in P2 if Avatar not ready; wire real avatar in P5</li>
+      <li><strong>Primary CTA</strong> — Wear This</li>
+      <li><strong>Secondary CTA</strong> — moodful reject (see copy)</li>
+      <li><strong>Two alternates</strong> — always shown by default under the fold or as compact cards</li>
+    </ol>
+
+    <h3>Recommendation inputs</h3>
+    <table>
+      <thead><tr><th>Signal</th><th>Behavior</th></tr></thead>
+      <tbody>
+        <tr><td>Weather</td><td>Temperature band, rain, humidity influence layering, fabric, footwear</td></tr>
+        <tr><td>Calendar (P2b)</td><td>Infer formality from events (client meeting → formal; dinner → smart casual)</td></tr>
+        <tr><td>Wear history</td><td>Penalize very recent repeats; boost neglected pieces</td></tr>
+        <tr><td>Preferences / vibe</td><td>Casual, Clean, Trendy, Bold, Minimal, Relaxed, Formal (expand over time)</td></tr>
+        <tr><td>Ownership</td><td>Only items in Closet (no shopping links in Today MVP)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Reject / regenerate copy (Gen Z / mood)</h3>
+    <p>Pick one primary label; keep others as A/B candidates:</p>
+    <ul>
+      <li><strong>Primary recommendation:</strong> “Not feeling it”</li>
+      <li>Alternates: “Switch the vibe” · “Wrong mood” · “Main character swap”</li>
+    </ul>
+    <p class="tiny">Action: regenerate primary + 2 alternates without opening a builder. Log a <em>reject</em> signal with previous outfit id.</p>
+
+    <h3>Wear This behavior</h3>
+    <ul>
+      <li>Writes a wear-history entry for the full outfit (all item ids) in one tap</li>
+      <li>No manual per-item logging</li>
+      <li>Confirms with lightweight feedback (“Logged for today”) and refreshes context</li>
+    </ul>
+
+    <div class="diagram">
+      <svg viewBox="0 0 720 210" xmlns="http://www.w3.org/2000/svg">
+        <rect width="720" height="210" rx="12" fill="#eef5f1"/>
+        <rect x="30" y="30" width="200" height="150" rx="14" fill="#fff" stroke="#2f5d50" stroke-width="2"/>
+        <text x="130" y="58" text-anchor="middle" font-size="12" font-weight="700" font-family="Helvetica, sans-serif" fill="#2f5d50">PRIMARY</text>
+        <rect x="55" y="70" width="150" height="70" rx="10" fill="#d8e8e1"/>
+        <text x="130" y="110" text-anchor="middle" font-size="11" font-family="Helvetica, sans-serif" fill="#1c2b26">Outfit + Avatar</text>
+        <text x="130" y="160" text-anchor="middle" font-size="10" font-family="Helvetica, sans-serif" fill="#6b7c74">Wear This · Not feeling it</text>
+
+        <rect x="260" y="45" width="190" height="55" rx="12" fill="#fff" stroke="#9bb0a7"/>
+        <text x="355" y="78" text-anchor="middle" font-size="12" font-family="Helvetica, sans-serif" font-weight="600" fill="#1c2b26">Alt look A</text>
+        <rect x="260" y="115" width="190" height="55" rx="12" fill="#fff" stroke="#9bb0a7"/>
+        <text x="355" y="148" text-anchor="middle" font-size="12" font-family="Helvetica, sans-serif" font-weight="600" fill="#1c2b26">Alt look B</text>
+
+        <rect x="480" y="45" width="210" height="125" rx="12" fill="#2f5d50"/>
+        <text x="585" y="85" text-anchor="middle" fill="#fff" font-size="12" font-weight="700" font-family="Helvetica, sans-serif">Why this?</text>
+        <text x="585" y="110" text-anchor="middle" fill="#d8e8e1" font-size="10" font-family="Helvetica, sans-serif">Warm · meeting</text>
+        <text x="585" y="128" text-anchor="middle" fill="#d8e8e1" font-size="10" font-family="Helvetica, sans-serif">· not worn lately</text>
+        <text x="585" y="146" text-anchor="middle" fill="#d8e8e1" font-size="10" font-family="Helvetica, sans-serif">· matches Clean vibe</text>
+      </svg>
+      <div class="diagram-caption">Figure 5 — Today layout: one primary decision + two alternatives</div>
+    </div>
+
+    <h3>Acceptance criteria</h3>
+    <ul class="ac">
+      <li>Today shows a complete recommendation without requiring the user to tap “Suggest” as a gate (auto-generate on load, with refresh control)</li>
+      <li>Two alternatives always present when closet can support them</li>
+      <li>“Not feeling it” replaces the primary set and records reject</li>
+      <li>Wear This creates history for all pieces in the look</li>
+      <li>Weather influences results (verified with hot/rainy fixtures)</li>
+    </ul>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= PHASE 2b ================= -->
+  <section class="page">
+    <div class="phase-banner">
+      <div class="badge">P2b</div>
+      <div>
+        <h3>Calendar-aware dressing</h3>
+        <div class="meta">Optional enhancement immediately after Today core</div>
+      </div>
+    </div>
+
+    <h3>Behavior</h3>
+    <ul>
+      <li>Request calendar permission with clear value prop (“Dress for today’s meetings”)</li>
+      <li>Read today’s events (title, time, optionally location)—not full history</li>
+      <li>Map events → dress context tags: Formal, Business, Smart casual, Party, Athletic, Travel</li>
+      <li>Surface one human cue: “Client meeting at 2pm → keeping it polished”</li>
+      <li>If permission denied, Today still works with weather + prefs only</li>
+    </ul>
+
+    <h3>Example mapping (v1 heuristics)</h3>
+    <table>
+      <thead><tr><th>Event cue</th><th>Inferred context</th></tr></thead>
+      <tbody>
+        <tr><td>interview, client, board, pitch</td><td>Formal / Business</td></tr>
+        <tr><td>dinner, date, anniversary</td><td>Smart casual / Evening</td></tr>
+        <tr><td>wedding, reception, puja, festival</td><td>Occasion / Festive</td></tr>
+        <tr><td>gym, run, yoga</td><td>Athletic (or exclude from fashion primary)</td></tr>
+        <tr><td>flight, travel day</td><td>Travel comfort + polished layers</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Acceptance criteria</h3>
+    <ul class="ac">
+      <li>With sample calendar fixtures, meeting language appears in “why”</li>
+      <li>Denial path never blocks recommendations</li>
+      <li>No raw calendar event contents uploaded beyond what’s needed for inference (privacy review)</li>
+    </ul>
+
+    <h2 style="margin-top:1.4em">Phase 2 engineering notes</h2>
+    <ul>
+      <li>Treat outfits as compositions of Closet item ids</li>
+      <li>Store recommendation sessions: proposed, worn, rejected, skipped</li>
+      <li>Avatar slot should be a stable component API even if it renders a mosaic fallback initially</li>
+    </ul>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= PHASE 3 ================= -->
+  <section class="page">
+    <div class="phase-banner">
+      <div class="badge">P3</div>
+      <div>
+        <h3>Closet intelligence</h3>
+        <div class="meta">Goal: Closet answers ownership questions and creates looks, not just stores SKUs</div>
+      </div>
+    </div>
+
+    <h3>Search modes</h3>
+    <table>
+      <thead><tr><th>Mode</th><th>Example</th><th>Returns</th></tr></thead>
+      <tbody>
+        <tr><td>Specific</td><td>“white t-shirt”</td><td>Matching individual items</td></tr>
+        <tr><td>Intent / occasion</td><td>“what can I wear to a wedding?”</td><td>Suitable individual pieces (not full outfits)</td></tr>
+        <tr><td>Combination</td><td>“what goes with my black jeans?”</td><td>Compatible items from Closet</td></tr>
+      </tbody>
+    </table>
+    <p class="tiny">Note: complete outfits for occasions belong in Discovery / Today—not Closet search results.</p>
+
+    <h3>Filters (UI simple, taxonomy rich)</h3>
+    <div class="grid-3">
+      <div class="card">
+        <h4>Clothing</h4>
+        <p class="tiny">Shirt, T-shirt, pants, jeans, dress, skirt, suit, jacket, kurta, saree, …</p>
+      </div>
+      <div class="card">
+        <h4>Footwear</h4>
+        <p class="tiny">Shoes, sandals, sneakers, boots, loafers, Crocs, …</p>
+      </div>
+      <div class="card">
+        <h4>Accessories</h4>
+        <p class="tiny">Jewelry (earrings, rings…), watches, bags, belts, hats, …</p>
+      </div>
+    </div>
+
+    <h3>Item detail must include</h3>
+    <ul>
+      <li>Full image + editable attributes</li>
+      <li>Last worn + wear count</li>
+      <li><strong>Goes well with</strong> — pairings from user’s Closet</li>
+      <li><strong>Create Look</strong> — jump into composition with this item pinned</li>
+    </ul>
+
+    <h3>Add clothing (inside Closet)</h3>
+    <div class="callout">
+      <strong>Ideal path:</strong> Photo → AI identifies → Confirm → Added → “Here are 3 ways to wear it.”
+    </div>
+    <ul>
+      <li>Sources: camera, library, selfie/worn photo (isolate garment when possible)</li>
+      <li>Multi-image session supported</li>
+      <li>Minimal manual fields; AI draft + quick correct</li>
+      <li>Optional background cleanup / crop</li>
+      <li>Immediate <strong>Possible Pairings</strong> after save</li>
+    </ul>
+
+    <h3>Acceptance criteria</h3>
+    <ul class="ac">
+      <li>Occasion query returns relevant pieces without fabricating outfits</li>
+      <li>Combination query excludes the seed item and ranks compatible categories</li>
+      <li>After adding a white shirt (fixture), user sees ≥1 pairing suggestion without navigating away</li>
+      <li>Subcategory filters work without returning to old Tops/Bottoms tab IA</li>
+    </ul>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= PHASE 4 ================= -->
+  <section class="page">
+    <div class="phase-banner">
+      <div class="badge">P4</div>
+      <div>
+        <h3>Vibe Match MVP</h3>
+        <div class="meta">Goal: turn “I saw this vibe” into “I can wear my version tonight”</div>
+      </div>
+    </div>
+
+    <h3>User journey</h3>
+    <ol>
+      <li>User uploads an inspiration image (street style, influencer, friend, Pinterest)</li>
+      <li>Vesha extracts vibe labels + structural elements (e.g., oversized top, relaxed denim, cap, sneakers)</li>
+      <li>System matches Closet inventory</li>
+      <li>If exact pieces exist → propose recreation</li>
+      <li>If gaps exist → propose <strong>silhouette hacks</strong> (“oversized shirt ≈ baggy tee”) — never dead-end on “you don’t own X”</li>
+      <li>Show: Inspiration · Your version · Avatar preview</li>
+      <li>Actions: Wear This · Save Look · Switch the vibe</li>
+    </ol>
+
+    <div class="diagram">
+      <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+        <rect width="720" height="200" rx="12" fill="#eef5f1"/>
+        <rect x="25" y="40" width="140" height="120" rx="12" fill="#fff" stroke="#2f5d50"/>
+        <text x="95" y="100" text-anchor="middle" font-size="12" font-weight="700" font-family="Helvetica, sans-serif" fill="#1c2b26">Inspiration</text>
+        <text x="95" y="118" text-anchor="middle" font-size="10" font-family="Helvetica, sans-serif" fill="#6b7c74">uploaded photo</text>
+
+        <text x="185" y="105" font-size="18" fill="#2f5d50">→</text>
+
+        <rect x="210" y="40" width="150" height="120" rx="12" fill="#2f5d50"/>
+        <text x="285" y="95" text-anchor="middle" fill="#fff" font-size="12" font-weight="700" font-family="Helvetica, sans-serif">Vibe engine</text>
+        <text x="285" y="115" text-anchor="middle" fill="#d8e8e1" font-size="10" font-family="Helvetica, sans-serif">labels + structure</text>
+
+        <text x="380" y="105" font-size="18" fill="#2f5d50">→</text>
+
+        <rect x="405" y="40" width="140" height="120" rx="12" fill="#fff" stroke="#2f5d50"/>
+        <text x="475" y="100" text-anchor="middle" font-size="12" font-weight="700" font-family="Helvetica, sans-serif" fill="#1c2b26">Your closet</text>
+        <text x="475" y="118" text-anchor="middle" font-size="10" font-family="Helvetica, sans-serif" fill="#6b7c74">match + hacks</text>
+
+        <text x="560" y="105" font-size="18" fill="#2f5d50">→</text>
+
+        <rect x="580" y="40" width="120" height="120" rx="12" fill="#d8e8e1"/>
+        <text x="640" y="100" text-anchor="middle" font-size="12" font-weight="700" font-family="Helvetica, sans-serif" fill="#1c2b26">Avatar</text>
+        <text x="640" y="118" text-anchor="middle" font-size="10" font-family="Helvetica, sans-serif" fill="#2f5d50">your version</text>
+      </svg>
+      <div class="diagram-caption">Figure 6 — Vibe Match pipeline</div>
+    </div>
+
+    <h3>Entry points</h3>
+    <ul>
+      <li>Closet → “Vibe Match”</li>
+      <li>Discovery → after Like / Save on an inspiration</li>
+    </ul>
+
+    <h3>Acceptance criteria</h3>
+    <ul class="ac">
+      <li>Fixture inspiration with baggy tee + jeans + cap returns a closet-based proposal</li>
+      <li>When baggy tee missing, substitution copy proposes an oversized alternative—not a hard failure</li>
+      <li>Output always lists mapped elements and confidence/gaps</li>
+      <li>User can Wear or Save the adapted look</li>
+    </ul>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= PHASE 5 ================= -->
+  <section class="page">
+    <div class="phase-banner">
+      <div class="badge">P5</div>
+      <div>
+        <h3>Avatar try-on</h3>
+        <div class="meta">Goal: users see the outfit as a whole on “them,” not only as a mosaic of SKUs</div>
+      </div>
+    </div>
+
+    <h3>Why this phase is later</h3>
+    <p>
+      Avatar quality can distract from habit mechanics if introduced too early.
+      Ship Today + Vibe Match with mosaic/fallback first; then replace the same slots with true try-on.
+    </p>
+
+    <h3>In scope</h3>
+    <ul>
+      <li>Avatar creation / upload / body basics (reuse profile height etc. where useful)</li>
+      <li>Layer garments (top/bottom/dress/shoes/accessories) onto avatar</li>
+      <li>Surfaces: Today primary, alternates thumbnail, Vibe Match result, Closet Create Look</li>
+      <li>Graceful fallback if a garment lacks a clean cutout</li>
+    </ul>
+
+    <h3>Out of scope (initially)</h3>
+    <ul>
+      <li>Photoreal virtual try-on indistinguishable from real photos</li>
+      <li>Fabric physics simulation</li>
+      <li>AR camera try-on</li>
+    </ul>
+
+    <h3>Acceptance criteria</h3>
+    <ul class="ac">
+      <li>Today primary recommendation renders on avatar for ≥80% of demo closet outfits</li>
+      <li>Missing layer does not crash—shows partial avatar + piece strip</li>
+      <li>Same avatar component used in Vibe Match output</li>
+    </ul>
+
+    <h2 style="margin-top:1.3em">Phase 5 dependency map</h2>
+    <div class="grid-2">
+      <div class="card filled">
+        <h4>Must already exist</h4>
+        <ul>
+          <li>Stable outfit composition model</li>
+          <li>Clean item images (Phase 3 cleanup helps)</li>
+          <li>Today &amp; Vibe Match UI slots</li>
+        </ul>
+      </div>
+      <div class="card filled">
+        <h4>Unlocks next</h4>
+        <ul>
+          <li>Discovery previews feel tangible</li>
+          <li>Social shares of “your version”</li>
+          <li>Higher trust in AI suggestions</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= PHASE 6 ================= -->
+  <section class="page">
+    <div class="phase-banner">
+      <div class="badge">P6</div>
+      <div>
+        <h3>Discovery</h3>
+        <div class="meta">Goal: “What could I wear?” — inspiration without becoming a generic social network</div>
+      </div>
+    </div>
+
+    <h3>Modules</h3>
+    <table>
+      <thead><tr><th>Module</th><th>Behavior</th></tr></thead>
+      <tbody>
+        <tr><td><strong>For You</strong></td><td>Personalized looks from closet + preference/wear signals</td></tr>
+        <tr><td><strong>AI-generated looks</strong></td><td>Complete outfits using only owned items</td></tr>
+        <tr><td><strong>Occasion discovery</strong></td><td>Date night, birthday, wedding, office, vacation, festival, brunch, …</td></tr>
+        <tr><td><strong>Trending</strong></td><td>Editorial collections (Fall, Diwali, summer, etc.)</td></tr>
+        <tr><td><strong>Like / Save</strong></td><td>Personalization signals + saved board</td></tr>
+        <tr><td><strong>Vibe Match CTA</strong></td><td>After Like/Save: recreate with Closet + avatar</td></tr>
+        <tr><td><strong>NL discovery</strong></td><td>“casual date-night outfits”, “South Indian wedding ideas”</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Product boundary</h3>
+    <div class="callout">
+      Discovery is fashion utility first. Social content must always offer a path back to
+      <strong>the user’s closet</strong> (Wear / Vibe Match / Save look)—not endless scrolling for its own sake.
+    </div>
+
+    <h3>Acceptance criteria</h3>
+    <ul class="ac">
+      <li>For You returns looks composed from the signed-in user’s items</li>
+      <li>Occasion collection opens filtered inspiration + closet-feasible variants</li>
+      <li>Like persists and increases probability of similar vibes on Today/Discovery</li>
+      <li>Vibe Match from a liked card opens Phase 4 flow with prefilled inspiration</li>
+    </ul>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= PHASE 7 ================= -->
+  <section class="page">
+    <div class="phase-banner">
+      <div class="badge">P7</div>
+      <div>
+        <h3>Social inspiration &amp; group matching</h3>
+        <div class="meta">Later-stage network effects — after solo habit is proven</div>
+      </div>
+    </div>
+
+    <h3>User inspiration feed</h3>
+    <ul>
+      <li>Users/creators post looks (still tied to garments / vibes)</li>
+      <li>Viewers can Like → Vibe Match using their own Closet</li>
+      <li>Moderation, reporting, and privacy controls required before broad launch</li>
+    </ul>
+
+    <h3>Group outfit matching (backlog idea → Phase 7 epic)</h3>
+    <p>Examples: family wedding, friends’ holiday, couple coordinated looks.</p>
+    <ul>
+      <li>Create a group event with dress code / vibe</li>
+      <li>Members share relevant Closet subsets or preference profiles (privacy-scoped)</li>
+      <li>System proposes coordinated palettes / formality alignment without forcing identical outfits</li>
+      <li>Each member gets a personal Wear This that fits the group story</li>
+    </ul>
+
+    <h3>Image search (Discovery stretch)</h3>
+    <p>Upload inspiration → find similar Discovery looks <em>and</em> Closet Vibe Match in one pipe.</p>
+
+    <div class="callout">
+      <strong>Launch gate:</strong> do not invest heavily in Phase 7 until Today weekly active habit metrics
+      (opens → Wear This) are healthy. Social without habit becomes content debt.
+    </div>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= CROSS CUTTING ================= -->
+  <section class="page">
+    <div class="eyebrow">13 · Systems</div>
+    <h2>Cross-cutting architecture notes</h2>
+
+    <h3>Suggested domain objects</h3>
+    <table>
+      <thead><tr><th>Entity</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td>Item</td><td>Garment/footwear/accessory with taxonomy + attributes + images</td></tr>
+        <tr><td>Outfit / Look</td><td>Ordered set of item ids + occasion/vibe metadata</td></tr>
+        <tr><td>WearEvent</td><td>Timestamped wear of outfit or item; source = today|vibe|manual</td></tr>
+        <tr><td>RecommendationSession</td><td>Proposed looks, chosen/rejected, context snapshot</td></tr>
+        <tr><td>VibeAnalysis</td><td>Labels, structural elements, source image ref</td></tr>
+        <tr><td>Inspiration / Post</td><td>Discovery content unit (editorial or user)</td></tr>
+        <tr><td>Reaction</td><td>Like, save, wear, reject</td></tr>
+        <tr><td>AvatarProfile</td><td>User visual baseline for try-on</td></tr>
+        <tr><td>CalendarContext</td><td>Derived dress codes for a day (not raw calendar dump)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>AI capability map</h3>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Already foundational</h4>
+        <ul>
+          <li>Garment identify / attribute extraction</li>
+          <li>Rule or model-based outfit scoring</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Net-new to plan</h4>
+        <ul>
+          <li>Intent search embeddings</li>
+          <li>Vibe &amp; silhouette analysis</li>
+          <li>Substitution / hack generator</li>
+          <li>Avatar compositing pipeline</li>
+          <li>Occasion collections ranking</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Taxonomy principle</h3>
+    <p>
+      UI shows 3 buckets. Backend stores fine-grained subtypes (shirt vs kurta vs saree).
+      Recommendations and search query the fine grain; filters expose progressive disclosure.
+    </p>
+
+    <h3>Privacy &amp; trust</h3>
+    <ul>
+      <li>Calendar: minimize scopes; store derived dress codes, not full event notes</li>
+      <li>Photos: clear retention; on-device crop when possible</li>
+      <li>Social: default private closet; sharing is explicit</li>
+    </ul>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+  <!-- ================= METRICS ================= -->
+  <section class="page">
+    <div class="eyebrow">14 · Measurement &amp; decisions</div>
+    <h2>Success metrics, risks, open questions</h2>
+
+    <h3>North-star metric</h3>
+    <p><strong>Wear Rate:</strong> % of Days-with-App-Open that end in a Wear This (or equivalent confirmed wear).</p>
+
+    <h3>Supporting metrics by phase</h3>
+    <table>
+      <thead><tr><th>Phase</th><th>Watch</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Tab distribution; Closet session depth; Add completion rate</td></tr>
+        <tr><td>2</td><td>Today open → Wear This; reject rate; time-to-first-wear</td></tr>
+        <tr><td>3</td><td>Search success; pairing CTR; post-add pairing engagement</td></tr>
+        <tr><td>4</td><td>Vibe Match completion; substitution accept rate</td></tr>
+        <tr><td>5</td><td>Avatar render success; influence on Wear This conversion</td></tr>
+        <tr><td>6</td><td>Like→Vibe Match funnel; Discovery weekly reach</td></tr>
+        <tr><td>7</td><td>Creator supply; group event completion (careful quality bar)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Key risks</h3>
+    <ul>
+      <li><strong>Empty Closet cold start</strong> — Today fails without items; keep first-run checklist + fast add</li>
+      <li><strong>Avatar overpromise</strong> — ship fallback mosaics; don’t block habit on try-on fidelity</li>
+      <li><strong>Search confusion</strong> — Closet returns pieces; Discovery returns looks—label results clearly</li>
+      <li><strong>Social distraction</strong> — delay until Wear Rate is strong</li>
+      <li><strong>Taxonomy sprawl</strong> — lock a v1 subtype list before filter UI expands</li>
+    </ul>
+
+    <h3>Open decisions (resolve before build spikes)</h3>
+    <ol>
+      <li>Final reject CTA string for v1 (“Not feeling it” vs “Switch the vibe”)</li>
+      <li>Avatar: illustrated vs photo-based baseline</li>
+      <li>Calendar provider scope (device calendar vs Google/Outlook OAuth)</li>
+      <li>Whether saved outfits remain a first-class object in Closet or only appear as Looks</li>
+      <li>Discovery content: editorial-only at launch vs user posts</li>
+    </ol>
+
+    <h3>Recommended near-term build order (checklist)</h3>
+    <ol>
+      <li>Ship Phase 1 navigation + Closet grid</li>
+      <li>Ship Phase 2 Today habit core with weather</li>
+      <li>Parallel Phase 3 search/pairings</li>
+      <li>Ship Phase 4 Vibe Match MVP</li>
+      <li>Upgrade visuals with Phase 5 Avatar</li>
+      <li>Turn on Phase 6 Discovery modules</li>
+      <li>Only then explore Phase 7 social/groups</li>
+    </ol>
+
+    <div class="callout">
+      <strong>Remember the distinction:</strong> a wardrobe database helps users store clothes.
+      Vesha succeeds when it helps them <em>wear</em> clothes—today, and again tomorrow.
+    </div>
+
+    <p class="tiny" style="margin-top:2em">Document end — Vesha Product Roadmap &amp; Development Guide v1.0 · August 2026</p>
+    <div class="footer-note"><span>Vesha — Product Roadmap &amp; Development Guide v1.0</span><span>Internal reference</span></div>
+  </section>
+
+</body>
+</html>
