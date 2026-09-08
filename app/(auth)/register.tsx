@@ -36,7 +36,7 @@ export default function RegisterScreen() {
         name: name.trim() || 'New User',
         heightCm: height ? Number(height) : undefined,
       });
-      router.replace('/(tabs)/wardrobe');
+      router.replace('/(tabs)/today');
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Please try again.';

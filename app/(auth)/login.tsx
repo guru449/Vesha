@@ -33,7 +33,7 @@ export default function LoginScreen() {
     setError(null);
     try {
       await signIn(email.trim(), password);
-      router.replace('/(tabs)/wardrobe');
+      router.replace('/(tabs)/today');
     } catch (err) {
       showError(err instanceof Error ? err.message : 'Please try again.');
     } finally {

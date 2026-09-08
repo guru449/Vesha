@@ -87,6 +87,7 @@ export const typography = {
   },
 } as const;
 
+/** Fine-grained categories stored on items (AI + recommendations). */
 export const categories = [
   'All',
   'Tops',
@@ -99,3 +100,32 @@ export const categories = [
 
 export type Category = (typeof categories)[number];
 export type ClothingCategory = Exclude<Category, 'All'>;
+
+/**
+ * Closet UI top-level buckets (Phase 1 IA).
+ * Fine subtypes stay on the item; the grid only exposes these three.
+ */
+export const closetBuckets = [
+  'All',
+  'Clothing',
+  'Footwear',
+  'Accessories',
+] as const;
+
+export type ClosetBucket = (typeof closetBuckets)[number];
+
+export function categoryToClosetBucket(
+  category: ClothingCategory,
+): Exclude<ClosetBucket, 'All'> {
+  if (category === 'Shoes') return 'Footwear';
+  if (category === 'Jewelry' || category === 'Accessories') return 'Accessories';
+  return 'Clothing';
+}
+
+export function itemMatchesClosetBucket(
+  category: ClothingCategory,
+  bucket: ClosetBucket,
+): boolean {
+  if (bucket === 'All') return true;
+  return categoryToClosetBucket(category) === bucket;
+}

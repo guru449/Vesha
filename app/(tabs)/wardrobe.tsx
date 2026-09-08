@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   FlatList,
@@ -16,23 +17,26 @@ import { Text } from '@/components/ui/Text';
 import { ClothingCard } from '@/components/wardrobe/ClothingCard';
 import { useApp } from '@/context/AppContext';
 import {
-  categories,
+  closetBuckets,
   colors,
+  itemMatchesClosetBucket,
   radii,
   spacing,
-  type Category,
+  type ClosetBucket,
 } from '@/constants/theme';
 import { matchesSearch } from '@/lib/search';
 
-export default function WardrobeScreen() {
+export default function ClosetScreen() {
   const { items, user } = useApp();
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState<Category>('All');
+  const [bucket, setBucket] = useState<ClosetBucket>('All');
 
   const filtered = useMemo(() => {
     return items.filter((item) => {
-      const matchesCategory =
-        category === 'All' || item.attributes.category === category;
+      const matchesBucket = itemMatchesClosetBucket(
+        item.attributes.category,
+        bucket,
+      );
       const matchesQuery = matchesSearch(
         [
           item.name,
@@ -46,21 +50,44 @@ export default function WardrobeScreen() {
         ],
         query,
       );
-      return matchesCategory && matchesQuery;
+      return matchesBucket && matchesQuery;
     });
-  }, [items, query, category]);
+  }, [items, query, bucket]);
 
   const header = (
     <View>
       <View style={styles.header}>
-        <Animated.View entering={FadeIn.duration(450)}>
-          <Text variant="caption" color={colors.muted}>
-            {user?.name ? `${user.name}'s closet` : 'Your closet'}
-          </Text>
-          <Text variant="hero">Wardrobe</Text>
-        </Animated.View>
+        <View style={styles.headerTop}>
+          <Animated.View entering={FadeIn.duration(450)} style={styles.headerCopy}>
+            <Text variant="caption" color={colors.muted}>
+              {user?.name ? `${user.name}'s pieces` : 'What do I own?'}
+            </Text>
+            <Text variant="hero">Closet</Text>
+          </Animated.View>
+          <View style={styles.headerActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Account"
+              onPress={() => router.push('/(tabs)/profile')}
+              style={styles.iconBtn}
+              hitSlop={8}
+            >
+              <Ionicons name="person-outline" size={20} color={colors.primary} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add a piece"
+              onPress={() => router.push('/(tabs)/add')}
+              style={[styles.iconBtn, styles.addBtn]}
+              hitSlop={8}
+            >
+              <Ionicons name="add" size={22} color={colors.white} />
+            </Pressable>
+          </View>
+        </View>
+
         <Text variant="body" color={colors.muted}>
-          {filtered.length} of {items.length} pieces · tap any item to edit
+          {filtered.length} of {items.length} pieces · tap a photo to open
         </Text>
 
         <View style={styles.search}>
@@ -78,6 +105,16 @@ export default function WardrobeScreen() {
             </Pressable>
           ) : null}
         </View>
+
+        <Pressable
+          style={styles.looksLink}
+          onPress={() => router.push('/(tabs)/outfits')}
+        >
+          <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
+          <Text variant="caption" color={colors.primary}>
+            Saved looks
+          </Text>
+        </Pressable>
       </View>
 
       <ScrollView
@@ -87,12 +124,12 @@ export default function WardrobeScreen() {
         contentContainerStyle={styles.filters}
         keyboardShouldPersistTaps="handled"
       >
-        {categories.map((item) => (
+        {closetBuckets.map((item) => (
           <Chip
             key={item}
             label={item}
-            selected={category === item}
-            onPress={() => setCategory(item)}
+            selected={bucket === item}
+            onPress={() => setBucket(item)}
           />
         ))}
       </ScrollView>
@@ -109,20 +146,31 @@ export default function WardrobeScreen() {
         contentContainerStyle={styles.grid}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={header}
-        stickyHeaderIndices={[]}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text variant="subtitle" center>
-              No pieces match
+              {items.length === 0 ? 'Your closet is empty' : 'No pieces match'}
             </Text>
             <Text variant="body" color={colors.muted} center>
-              Try another category or clear your search.
+              {items.length === 0
+                ? 'Tap + to add your first piece.'
+                : 'Try another filter or clear your search.'}
             </Text>
+            {items.length === 0 ? (
+              <Pressable
+                style={styles.emptyAdd}
+                onPress={() => router.push('/(tabs)/add')}
+              >
+                <Text variant="bodyMedium" color={colors.primary}>
+                  Add a piece
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
         }
         renderItem={({ item, index }) => (
           <View style={styles.cell}>
-            <ClothingCard item={item} index={index} />
+            <ClothingCard item={item} index={index} imageOnly />
           </View>
         )}
       />
@@ -136,8 +184,35 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     gap: spacing.sm,
   },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryMist,
+  },
+  addBtn: {
+    backgroundColor: colors.primary,
+  },
   search: {
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -154,6 +229,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.ink,
     paddingVertical: 12,
+  },
+  looksLink: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
   },
   filterList: {
     flexGrow: 0,
@@ -180,5 +262,11 @@ const styles = StyleSheet.create({
   empty: {
     paddingTop: spacing.xxl,
     gap: spacing.sm,
+    alignItems: 'center',
+  },
+  emptyAdd: {
+    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
 });

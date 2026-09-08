@@ -16,7 +16,7 @@ export default function WelcomeScreen() {
 
   const continueDemo = async () => {
     await enterApp();
-    router.replace('/(tabs)/wardrobe');
+    router.replace('/(tabs)/today');
   };
 
   return (
