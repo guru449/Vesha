@@ -87,6 +87,18 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
+              name="add/ways"
+              options={{
+                headerShown: true,
+                headerTitle: 'Ways to wear it',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.bg },
+                headerShadowVisible: false,
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }}
+            />
+            <Stack.Screen
               name="outfit/create"
               options={{
                 headerShown: true,

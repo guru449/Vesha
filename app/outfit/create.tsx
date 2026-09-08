@@ -21,7 +21,10 @@ import {
 const OCCASIONS = ['Casual', 'Work', 'Brunch', 'Evening', 'Travel', 'Sport'];
 
 export default function CreateOutfitScreen() {
-  const { outfitId } = useLocalSearchParams<{ outfitId?: string }>();
+  const { outfitId, prefillIds } = useLocalSearchParams<{
+    outfitId?: string;
+    prefillIds?: string;
+  }>();
   const { items, outfits, addOutfit, updateOutfit } = useApp();
   const insets = useSafeAreaInsets();
 
@@ -30,14 +33,24 @@ export default function CreateOutfitScreen() {
     [outfitId, outfits],
   );
 
+  const prefillList = useMemo(() => {
+    if (!prefillIds || typeof prefillIds !== 'string') return [];
+    return prefillIds
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+  }, [prefillIds]);
+
   const [name, setName] = useState(existing?.name ?? '');
   const [occasion, setOccasion] = useState(existing?.occasion ?? 'Casual');
   const [selectedIds, setSelectedIds] = useState<string[]>(
-    existing?.itemIds ?? [],
+    existing?.itemIds ?? prefillList,
   );
   const [filter, setFilter] = useState<Category>('All');
   const [saving, setSaving] = useState(false);
-  const [showDetails, setShowDetails] = useState(Boolean(existing));
+  const [showDetails, setShowDetails] = useState(
+    Boolean(existing) || prefillList.length > 0,
+  );
 
   useEffect(() => {
     if (existing) {
@@ -45,8 +58,11 @@ export default function CreateOutfitScreen() {
       setOccasion(existing.occasion ?? 'Casual');
       setSelectedIds(existing.itemIds);
       setShowDetails(true);
+    } else if (prefillList.length > 0) {
+      setSelectedIds(prefillList);
+      setShowDetails(true);
     }
-  }, [existing]);
+  }, [existing, prefillList]);
 
   const filteredItems = useMemo(() => {
     if (filter === 'All') return items;

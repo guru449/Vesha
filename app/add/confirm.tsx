@@ -170,8 +170,9 @@ export default function ConfirmAttributesScreen() {
     setSaving(true);
     try {
       const persisted = await saveWardrobeImage(imageUri, user?.id);
+      const newId = `item-${Date.now()}`;
       await addItem({
-        id: `item-${Date.now()}`,
+        id: newId,
         name: options?.asPhotoOnly
           ? 'Photo upload'
           : name.trim() || 'Untitled piece',
@@ -194,7 +195,10 @@ export default function ConfirmAttributesScreen() {
         createdAt: new Date().toISOString(),
         aiConfidence: options?.withAiConfidence,
       });
-      router.replace('/(tabs)/wardrobe');
+      router.replace({
+        pathname: '/add/ways',
+        params: { itemId: newId },
+      });
     } finally {
       setSaving(false);
     }

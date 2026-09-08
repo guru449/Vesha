@@ -1,7 +1,14 @@
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
@@ -14,6 +21,10 @@ import {
 import { useApp } from '@/context/AppContext';
 import type { ClothingCategory } from '@/constants/theme';
 import { colors, radii, spacing } from '@/constants/theme';
+import {
+  buildLookAroundItem,
+  findPairingsForItem,
+} from '@/lib/closetIntel';
 
 const CATEGORY_OPTIONS: ClothingCategory[] = [
   'Tops',
@@ -33,6 +44,10 @@ export default function ItemDetailScreen() {
   const wearStats = useMemo(
     () => (id ? getItemWearStats(id) : { wearCount: 0 }),
     [getItemWearStats, id],
+  );
+  const pairings = useMemo(
+    () => (item ? findPairingsForItem(item, items, 6) : []),
+    [item, items],
   );
 
   const [name, setName] = useState(item?.name ?? '');
@@ -87,6 +102,14 @@ export default function ItemDetailScreen() {
     } finally {
       setWearing(false);
     }
+  };
+
+  const onCreateLook = () => {
+    const itemIds = buildLookAroundItem(item, items);
+    router.push({
+      pathname: '/outfit/create',
+      params: { prefillIds: itemIds.join(',') },
+    });
   };
 
   const onDelete = async () => {
@@ -220,6 +243,42 @@ export default function ItemDetailScreen() {
             <AttributeField label="Material" value={item.attributes.material} />
             <AttributeField label="Style" value={item.attributes.style} />
             <AttributeField label="Occasion" value={item.attributes.occasion} />
+
+            <View style={styles.pairings}>
+              <Text variant="caption" color={colors.muted}>
+                Goes well with
+              </Text>
+              {pairings.length === 0 ? (
+                <Text variant="body" color={colors.muted}>
+                  Add more pieces and we’ll suggest pairings here.
+                </Text>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.pairingRow}
+                >
+                  {pairings.map((piece) => (
+                    <Pressable
+                      key={piece.id}
+                      style={styles.pairingCard}
+                      onPress={() => router.push(`/item/${piece.id}`)}
+                    >
+                      <Image
+                        source={{ uri: piece.imageUri }}
+                        style={styles.pairingImage}
+                        contentFit="cover"
+                      />
+                      <Text variant="caption" numberOfLines={2}>
+                        {piece.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              )}
+              <Button label="Create a look" onPress={onCreateLook} />
+            </View>
+
             <Button label="Edit details" onPress={() => setEditing(true)} />
             <Button label="Delete item" variant="danger" onPress={onDelete} />
           </View>
@@ -259,6 +318,23 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.md,
     gap: spacing.sm,
+  },
+  pairings: {
+    gap: spacing.sm,
+  },
+  pairingRow: {
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  pairingCard: {
+    width: 96,
+    gap: 6,
+  },
+  pairingImage: {
+    width: 96,
+    height: 120,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceMuted,
   },
   missing: {
     flex: 1,

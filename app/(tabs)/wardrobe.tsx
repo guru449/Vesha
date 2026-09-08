@@ -24,35 +24,25 @@ import {
   spacing,
   type ClosetBucket,
 } from '@/constants/theme';
-import { matchesSearch } from '@/lib/search';
+import { searchClosetItems } from '@/lib/closetIntel';
 
 export default function ClosetScreen() {
   const { items, user } = useApp();
   const [query, setQuery] = useState('');
   const [bucket, setBucket] = useState<ClosetBucket>('All');
 
-  const filtered = useMemo(() => {
-    return items.filter((item) => {
-      const matchesBucket = itemMatchesClosetBucket(
-        item.attributes.category,
-        bucket,
-      );
-      const matchesQuery = matchesSearch(
-        [
-          item.name,
-          item.attributes.color,
-          item.attributes.style,
-          item.attributes.material,
-          item.attributes.occasion,
-          item.attributes.category,
-          item.attributes.pattern,
-          item.attributes.brand ?? '',
-        ],
-        query,
-      );
-      return matchesBucket && matchesQuery;
-    });
+  const searchResult = useMemo(() => {
+    const result = searchClosetItems(items, query);
+    if (bucket === 'All') return result;
+    return {
+      ...result,
+      items: result.items.filter((item) =>
+        itemMatchesClosetBucket(item.attributes.category, bucket),
+      ),
+    };
   }, [items, query, bucket]);
+
+  const filtered = searchResult.items;
 
   const header = (
     <View>
@@ -87,7 +77,9 @@ export default function ClosetScreen() {
         </View>
 
         <Text variant="body" color={colors.muted}>
-          {filtered.length} of {items.length} pieces · tap a photo to open
+          {query.trim() && searchResult.headline
+            ? searchResult.headline
+            : `${filtered.length} of ${items.length} pieces · tap a photo to open`}
         </Text>
 
         <View style={styles.search}>
@@ -95,7 +87,7 @@ export default function ClosetScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search color, style, fabric…"
+            placeholder='Search, occasion, or “goes with…”'
             placeholderTextColor={colors.muted}
             style={styles.searchInput}
           />
@@ -154,7 +146,11 @@ export default function ClosetScreen() {
             <Text variant="body" color={colors.muted} center>
               {items.length === 0
                 ? 'Tap + to add your first piece.'
-                : 'Try another filter or clear your search.'}
+                : query.trim()
+                  ? searchResult.mode === 'combo'
+                    ? 'No strong pairings — try another piece or a simpler search.'
+                    : 'Try a color, piece name, or occasion like wedding / work / date.'
+                  : 'Try another filter or clear your search.'}
             </Text>
             {items.length === 0 ? (
               <Pressable
