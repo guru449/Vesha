@@ -467,6 +467,8 @@ export function suggestOutfitsForToday(options: {
   stylePreferences?: string[];
   weather?: WeatherSnapshot | null;
   limit?: number;
+  /** Sorted item-id keys to skip (e.g. after “Not feeling it”) */
+  excludeKeys?: string[];
 }): StylistSuggestion[] {
   const {
     occasion,
@@ -476,11 +478,15 @@ export function suggestOutfitsForToday(options: {
     stylePreferences = [],
     weather = null,
     limit = 3,
+    excludeKeys = [],
   } = options;
   const avoid = recentlyWornItemIds(wearHistory);
   const lastWorn = lastWornMap(wearHistory);
   const suggestions: StylistSuggestion[] = [];
   const usedItemIds = new Set<string>();
+  const excluded = new Set(excludeKeys);
+
+  const comboKey = (ids: string[]) => ids.slice().sort().join('|');
 
   const matchingSaved = outfits
     .map((outfit) => {
@@ -541,6 +547,7 @@ export function suggestOutfitsForToday(options: {
     if (suggestions.length >= limit) break;
     if (!occasionMatch) continue;
     if (weatherPts <= -4) continue;
+    if (excluded.has(comboKey(outfit.itemIds))) continue;
 
     const wornRecently =
       outfit.lastWornAt && daysAgo(outfit.lastWornAt) <= RECENT_DAYS;
@@ -570,7 +577,7 @@ export function suggestOutfitsForToday(options: {
   }
 
   let assembleIndex = 0;
-  while (suggestions.length < limit && assembleIndex < 8) {
+  while (suggestions.length < limit && assembleIndex < 12) {
     const built = assembleFromWardrobe(
       items,
       occasion,
@@ -586,9 +593,9 @@ export function suggestOutfitsForToday(options: {
       if (assembleIndex > 3) break;
       continue;
     }
+    if (excluded.has(comboKey(built.itemIds))) continue;
     const duplicate = suggestions.some(
-      (s) =>
-        s.itemIds.slice().sort().join() === built.itemIds.slice().sort().join(),
+      (s) => comboKey(s.itemIds) === comboKey(built.itemIds),
     );
     if (!duplicate) {
       // Re-title using suggestion slot so #2/#3 read as alternates
