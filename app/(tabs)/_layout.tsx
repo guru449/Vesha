@@ -1,9 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
-import { colors, radii } from '@/constants/theme';
+import { colors } from '@/constants/theme';
 
+/**
+ * Phase 1 IA: only three primary destinations.
+ * Today · Closet · Discovery. Add / Outfits / Profile stay as routes
+ * but are hidden from the tab bar (opened from Closet / account).
+ */
 export default function TabLayout() {
   return (
     <Tabs
@@ -13,38 +18,12 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: {
           fontFamily: 'PlusJakartaSans_600SemiBold',
-          fontSize: 10,
+          fontSize: 11,
           marginBottom: Platform.OS === 'web' ? 8 : 0,
         },
         tabBarStyle: styles.tabBar,
       }}
     >
-      <Tabs.Screen
-        name="wardrobe"
-        options={{
-          title: 'Wardrobe',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'shirt' : 'shirt-outline'}
-              size={20}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="outfits"
-        options={{
-          title: 'Outfits',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'sparkles' : 'sparkles-outline'}
-              size={20}
-              color={color}
-            />
-          ),
-        }}
-      />
       <Tabs.Screen
         name="today"
         options={{
@@ -52,43 +31,55 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'sunny' : 'sunny-outline'}
-              size={20}
+              size={22}
               color={color}
             />
           ),
         }}
       />
       <Tabs.Screen
+        name="wardrobe"
+        options={{
+          title: 'Closet',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'shirt' : 'shirt-outline'}
+              size={22}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="discovery"
+        options={{
+          title: 'Discovery',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'compass' : 'compass-outline'}
+              size={22}
+              color={color}
+            />
+          ),
+        }}
+      />
+      {/* Secondary routes — keep for deep links, hide from tab bar */}
+      <Tabs.Screen
         name="add"
         options={{
-          title: 'Add',
-          tabBarIcon: ({ focused }) => (
-            <View
-              style={StyleSheet.flatten([
-                styles.addIcon,
-                focused && styles.addIconActive,
-              ])}
-            >
-              <Ionicons
-                name="add"
-                size={22}
-                color={focused ? colors.white : colors.primary}
-              />
-            </View>
-          ),
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="outfits"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              size={20}
-              color={color}
-            />
-          ),
+          href: null,
         }}
       />
     </Tabs>
@@ -101,17 +92,5 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     height: Platform.OS === 'web' ? 72 : 64,
     paddingTop: 6,
-  },
-  addIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primarySoft,
-    marginBottom: -2,
-  },
-  addIconActive: {
-    backgroundColor: colors.primary,
   },
 });

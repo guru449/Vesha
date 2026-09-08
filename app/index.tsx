@@ -21,7 +21,7 @@ export default function Index() {
     return <Redirect href="/(auth)/welcome" />;
   }
 
-  return <Redirect href="/(tabs)/wardrobe" />;
+  return <Redirect href="/(tabs)/today" />;
 }
 
 const styles = StyleSheet.create({
