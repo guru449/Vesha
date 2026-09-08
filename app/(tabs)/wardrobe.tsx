@@ -107,6 +107,16 @@ export default function ClosetScreen() {
             Saved looks
           </Text>
         </Pressable>
+
+        <Pressable
+          style={styles.looksLink}
+          onPress={() => router.push('/vibe')}
+        >
+          <Ionicons name="color-wand-outline" size={16} color={colors.primary} />
+          <Text variant="caption" color={colors.primary}>
+            Vibe Match
+          </Text>
+        </Pressable>
       </View>
 
       <ScrollView

@@ -99,6 +99,30 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
+              name="vibe/index"
+              options={{
+                headerShown: true,
+                headerTitle: 'Vibe Match',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.bg },
+                headerShadowVisible: false,
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }}
+            />
+            <Stack.Screen
+              name="vibe/result"
+              options={{
+                headerShown: true,
+                headerTitle: 'Your version',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.bg },
+                headerShadowVisible: false,
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }}
+            />
+            <Stack.Screen
               name="outfit/create"
               options={{
                 headerShown: true,

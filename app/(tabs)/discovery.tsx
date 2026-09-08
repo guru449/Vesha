@@ -34,7 +34,8 @@ export default function DiscoveryScreen() {
         <Text variant="subtitle">On the way</Text>
         <Text variant="body" color={colors.muted}>
           For You looks from what you already own, occasion collections (date
-          night, wedding, brunch), trending vibes, and Like → Vibe Match.
+          night, wedding, brunch), and trending vibes. Vibe Match is live from
+          Closet — Like → Match lands here in a later phase.
         </Text>
       </Animated.View>
 
