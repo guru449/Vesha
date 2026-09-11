@@ -230,6 +230,31 @@ export default function DiscoveryScreen() {
             />
           ))}
         </ScrollView>
+
+        <View style={styles.socialRow}>
+          <Pressable
+            style={styles.socialCard}
+            onPress={() => router.push('/social')}
+          >
+            <Ionicons name="people-outline" size={18} color={colors.primary} />
+            <Text variant="caption" color={colors.primary}>
+              Community
+            </Text>
+          </Pressable>
+          <Pressable
+            style={styles.socialCard}
+            onPress={() => router.push('/groups')}
+          >
+            <Ionicons
+              name="calendar-outline"
+              size={18}
+              color={colors.primary}
+            />
+            <Text variant="caption" color={colors.primary}>
+              Groups
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       {showForYou ? (
@@ -572,6 +597,20 @@ const styles = StyleSheet.create({
   filters: {
     paddingRight: spacing.lg,
     alignItems: 'center',
+  },
+  socialRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  socialCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primaryMist,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm + 2,
   },
   section: {
     marginTop: spacing.lg,

@@ -123,6 +123,39 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
+              name="social/index"
+              options={{
+                headerShown: true,
+                headerTitle: 'Community',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.bg },
+                headerShadowVisible: false,
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="groups/index"
+              options={{
+                headerShown: true,
+                headerTitle: 'Group outings',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.bg },
+                headerShadowVisible: false,
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="groups/[id]"
+              options={{
+                headerShown: true,
+                headerTitle: 'Outing',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.bg },
+                headerShadowVisible: false,
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
               name="outfit/create"
               options={{
                 headerShown: true,

@@ -18,6 +18,7 @@ import { Text } from '@/components/ui/Text';
 import { useApp } from '@/context/AppContext';
 import { colors, radii, spacing } from '@/constants/theme';
 import { shareOutfitCard } from '@/lib/shareOutfit';
+import { fixtureIdForOccasion, publishLookToFeed } from '@/lib/social';
 
 export default function OutfitDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,10 +28,13 @@ export default function OutfitDetailScreen() {
     deleteOutfit,
     markOutfitWorn,
     updateOutfit,
+    user,
   } = useApp();
   const insets = useSafeAreaInsets();
   const shareRef = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [posted, setPosted] = useState(false);
   const [pinning, setPinning] = useState(false);
   const [wearing, setWearing] = useState(false);
   const [justWorn, setJustWorn] = useState(false);
@@ -131,6 +135,32 @@ export default function OutfitDetailScreen() {
       );
     } finally {
       setSharing(false);
+    }
+  };
+
+  const onPostToCommunity = async () => {
+    if (!outfit || pieces.length === 0) return;
+    setPosting(true);
+    try {
+      await publishLookToFeed({
+        authorName: user?.name ?? 'You',
+        caption: `${outfit.name}${outfit.occasion ? ` · ${outfit.occasion}` : ''}`,
+        imageUri: pieces[0]!.imageUri,
+        vibeLabels: [
+          ...(outfit.occasion ? [outfit.occasion.toLowerCase()] : []),
+          'closet',
+        ],
+        fixtureId: fixtureIdForOccasion(outfit.occasion),
+        itemIds: outfit.itemIds,
+      });
+      setPosted(true);
+    } catch (error) {
+      showMessage(
+        'Could not post',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    } finally {
+      setPosting(false);
     }
   };
 
@@ -239,6 +269,25 @@ export default function OutfitDetailScreen() {
             onPress={onShare}
             disabled={sharing || pieces.length === 0}
           />
+          <Button
+            label={
+              posting
+                ? 'Posting…'
+                : posted
+                  ? 'Posted to Community'
+                  : 'Post to Community'
+            }
+            variant="ghost"
+            onPress={onPostToCommunity}
+            disabled={posting || posted || pieces.length === 0}
+          />
+          {posted ? (
+            <Pressable onPress={() => router.push('/social')} hitSlop={8}>
+              <Text variant="caption" color={colors.primary} center>
+                Open Community feed
+              </Text>
+            </Pressable>
+          ) : null}
           <View style={styles.quietRow}>
             <Pressable onPress={goEdit} hitSlop={8}>
               <Text variant="bodyMedium" color={colors.primary}>
