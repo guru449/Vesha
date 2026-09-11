@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
+import { OutfitAvatar } from '@/components/avatar/OutfitAvatar';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Screen } from '@/components/ui/Screen';
@@ -41,28 +42,6 @@ function formatTodayLabel(date = new Date()) {
     month: 'short',
     day: 'numeric',
   });
-}
-
-function OutfitMosaic({
-  pieces,
-  compact,
-}: {
-  pieces: ClothingItem[];
-  compact?: boolean;
-}) {
-  return (
-    <View style={[styles.mosaic, compact && styles.mosaicCompact]}>
-      {pieces.slice(0, 4).map((item) => (
-        <Image
-          key={item.id}
-          source={{ uri: item.imageUri }}
-          style={styles.tile}
-          contentFit="cover"
-        />
-      ))}
-      {pieces.length === 0 ? <View style={styles.tile} /> : null}
-    </View>
-  );
 }
 
 function PieceStrip({ pieces }: { pieces: ClothingItem[] }) {
@@ -405,7 +384,11 @@ export default function TodayScreen() {
                 entering={FadeInDown.duration(420)}
                 style={styles.primaryCard}
               >
-                <OutfitMosaic pieces={primaryPieces} />
+                <OutfitAvatar
+                  pieces={primaryPieces}
+                  avatarUri={user?.avatarUri}
+                  heightCm={user?.heightCm}
+                />
                 <View style={styles.avatarHint}>
                   <Ionicons
                     name="person-outline"
@@ -413,7 +396,7 @@ export default function TodayScreen() {
                     color={colors.primary}
                   />
                   <Text variant="caption" color={colors.primary}>
-                    Avatar try-on coming soon · mosaic preview for now
+                    Try-on preview · layered on your avatar
                   </Text>
                 </View>
                 <View style={styles.cardBody}>
@@ -467,7 +450,13 @@ export default function TodayScreen() {
                           style={styles.altRow}
                           onPress={() => promoteAlternate(alt)}
                         >
-                          <OutfitMosaic pieces={pieces} compact />
+                          <OutfitAvatar
+                            pieces={pieces}
+                            avatarUri={user?.avatarUri}
+                            heightCm={user?.heightCm}
+                            compact
+                            style={styles.altAvatar}
+                          />
                           <View style={styles.altMeta}>
                             <Text variant="bodyMedium" numberOfLines={1}>
                               {alt.title}
@@ -662,20 +651,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     overflow: 'hidden',
   },
-  mosaic: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    height: 168,
-    backgroundColor: colors.surfaceMuted,
-  },
-  mosaicCompact: {
+  altAvatar: {
     width: 96,
-    height: 96,
     flexShrink: 0,
-  },
-  tile: {
-    width: '50%',
-    height: '50%',
   },
   avatarHint: {
     flexDirection: 'row',

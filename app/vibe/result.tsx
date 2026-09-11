@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { OutfitAvatar } from '@/components/avatar/OutfitAvatar';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { useApp } from '@/context/AppContext';
@@ -36,7 +37,7 @@ export default function VibeMatchResultScreen() {
     fixtureId?: string;
     imageUri?: string;
   }>();
-  const { items, addOutfit, markOutfitWorn, getItemsByIds } = useApp();
+  const { items, addOutfit, markOutfitWorn, getItemsByIds, user } = useApp();
   const insets = useSafeAreaInsets();
 
   const [excludeItemIds, setExcludeItemIds] = useState<string[]>([]);
@@ -142,20 +143,12 @@ export default function VibeMatchResultScreen() {
             <Text variant="caption" color={colors.muted}>
               Your version
             </Text>
-            <View style={styles.mosaic}>
-              {pieces.slice(0, 4).map((item) => (
-                <Image
-                  key={item.id}
-                  source={{ uri: item.imageUri }}
-                  style={styles.tile}
-                  contentFit="cover"
-                />
-              ))}
-              {pieces.length === 0 ? <View style={styles.tile} /> : null}
-            </View>
-            <Text variant="caption" color={colors.primary}>
-              Avatar preview in a later phase — mosaic for now
-            </Text>
+            <OutfitAvatar
+              pieces={pieces}
+              avatarUri={user?.avatarUri}
+              heightCm={user?.heightCm}
+              style={styles.panelAvatar}
+            />
           </View>
         </View>
 
@@ -282,19 +275,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     backgroundColor: colors.surfaceMuted,
   },
-  mosaic: {
-    width: '100%',
-    aspectRatio: 0.75,
+  panelAvatar: {
     borderRadius: radii.lg,
-    overflow: 'hidden',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    backgroundColor: colors.surfaceMuted,
-  },
-  tile: {
-    width: '50%',
-    height: '50%',
-    backgroundColor: colors.surfaceMuted,
   },
   summary: {
     gap: spacing.sm,

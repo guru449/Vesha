@@ -29,6 +29,8 @@ export type UserProfile = {
   heightCm?: number;
   weightKg?: number;
   stylePreferences: string[];
+  /** Optional full-body / face photo for try-on silhouette */
+  avatarUri?: string;
 };
 
 export type Outfit = {

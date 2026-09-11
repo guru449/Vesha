@@ -1,8 +1,19 @@
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { OutfitAvatar } from '@/components/avatar/OutfitAvatar';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Input } from '@/components/ui/Input';
@@ -11,6 +22,7 @@ import { Text } from '@/components/ui/Text';
 import { useApp } from '@/context/AppContext';
 import { colors, radii, spacing } from '@/constants/theme';
 import { STYLE_PREFERENCE_OPTIONS } from '@/lib/insights';
+import { saveWardrobeImage } from '@/lib/uploadImage';
 
 export default function ProfileScreen() {
   const {
@@ -33,6 +45,7 @@ export default function ProfileScreen() {
     user?.stylePreferences ?? [],
   );
   const [saved, setSaved] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
 
   useEffect(() => {
     setPreferences(user?.stylePreferences ?? []);
@@ -46,6 +59,52 @@ export default function ProfileScreen() {
     );
   };
 
+  const showMessage = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n\n${message}`);
+      return;
+    }
+    Alert.alert(title, message);
+  };
+
+  const pickAvatar = async () => {
+    setAvatarBusy(true);
+    try {
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        showMessage(
+          'Photos permission needed',
+          'Allow photo access to set your try-on avatar.',
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.85,
+        allowsEditing: true,
+        aspect: [3, 4],
+      });
+      if (result.canceled) return;
+      const persisted = await saveWardrobeImage(
+        result.assets[0].uri,
+        user?.id,
+      );
+      await updateProfile({ avatarUri: persisted });
+    } catch (error) {
+      showMessage(
+        'Could not update avatar',
+        error instanceof Error ? error.message : 'Try another photo.',
+      );
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const clearAvatar = async () => {
+    await updateProfile({ avatarUri: undefined });
+  };
+
   const onSave = async () => {
     await updateProfile({
       name: name.trim() || user?.name,
@@ -57,12 +116,14 @@ export default function ProfileScreen() {
     setTimeout(() => setSaved(false), 1600);
   };
 
+  const previewPieces = items.slice(0, 4);
+
   return (
     <Screen scroll>
       <Animated.View entering={FadeInDown.duration(450)} style={styles.header}>
         <Text variant="hero">Profile</Text>
         <Text variant="body" color={colors.muted}>
-          Preferences power Today’s stylist.
+          Preferences power Today’s stylist — and your try-on avatar.
         </Text>
         <View style={styles.modeChip}>
           <Text variant="caption" color={colors.primary}>
@@ -125,6 +186,62 @@ export default function ProfileScreen() {
       </Pressable>
 
       <View style={styles.form}>
+        <View style={styles.avatarBlock}>
+          <Text variant="caption" color={colors.muted}>
+            Try-on avatar
+          </Text>
+          <View style={styles.avatarRow}>
+            <View style={styles.avatarPreview}>
+              {user?.avatarUri ? (
+                <Image
+                  source={{ uri: user.avatarUri }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                />
+              ) : (
+                <OutfitAvatar
+                  pieces={previewPieces}
+                  heightCm={height ? Number(height) : user?.heightCm}
+                  compact
+                  emptyLabel="Silhouette"
+                />
+              )}
+            </View>
+            <View style={styles.avatarActions}>
+              <Text variant="body" color={colors.muted}>
+                Optional full-body photo. Height tunes silhouette proportions.
+                Without a photo we use a soft figure.
+              </Text>
+              <Button
+                label={avatarBusy ? 'Uploading…' : 'Upload photo'}
+                onPress={pickAvatar}
+                disabled={avatarBusy}
+              />
+              {user?.avatarUri ? (
+                <Pressable onPress={clearAvatar} hitSlop={8}>
+                  <Text variant="caption" color={colors.muted}>
+                    Use silhouette instead
+                  </Text>
+                </Pressable>
+              ) : null}
+              {avatarBusy ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <View style={styles.avatarHintRow}>
+                  <Ionicons
+                    name="shirt-outline"
+                    size={14}
+                    color={colors.primary}
+                  />
+                  <Text variant="caption" color={colors.primary}>
+                    Used on Today, Vibe Match, and Create Look
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+
         <Input label="Name" value={name} onChangeText={setName} />
         <Input
           label="Email"
@@ -137,14 +254,14 @@ export default function ProfileScreen() {
           keyboardType="numeric"
           value={height}
           onChangeText={setHeight}
-          hint="Saved for later avatar sizing"
+          hint="Tunes avatar proportions"
         />
         <Input
           label="Weight (kg)"
           keyboardType="numeric"
           value={weight}
           onChangeText={setWeight}
-          hint="Saved for later avatar sizing"
+          hint="Saved with your profile"
         />
 
         <View style={styles.prefBlock}>
@@ -164,17 +281,6 @@ export default function ProfileScreen() {
               />
             ))}
           </View>
-        </View>
-
-        <View style={styles.laterCard}>
-          <Text variant="caption" color={colors.primary}>
-            Coming later
-          </Text>
-          <Text variant="bodyMedium">Avatar & photo upload</Text>
-          <Text variant="body" color={colors.muted}>
-            We’ll use height, weight, and an optional full-body photo to build
-            your try-on avatar in a later phase.
-          </Text>
         </View>
 
         <Button label={saved ? 'Saved' : 'Save profile'} onPress={onSave} />
@@ -237,17 +343,37 @@ const styles = StyleSheet.create({
   form: {
     gap: spacing.md,
   },
+  avatarBlock: {
+    gap: spacing.sm,
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    alignItems: 'flex-start',
+  },
+  avatarPreview: {
+    width: 112,
+  },
+  avatarImage: {
+    width: 112,
+    height: 140,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surfaceMuted,
+  },
+  avatarActions: {
+    flex: 1,
+    gap: spacing.sm,
+  },
+  avatarHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   prefBlock: {
     gap: spacing.sm,
   },
   prefWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-  },
-  laterCard: {
-    backgroundColor: colors.primaryMist,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    gap: 6,
   },
 });

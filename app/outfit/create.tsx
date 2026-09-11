@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { OutfitAvatar } from '@/components/avatar/OutfitAvatar';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Input } from '@/components/ui/Input';
@@ -25,7 +26,7 @@ export default function CreateOutfitScreen() {
     outfitId?: string;
     prefillIds?: string;
   }>();
-  const { items, outfits, addOutfit, updateOutfit } = useApp();
+  const { items, outfits, addOutfit, updateOutfit, user } = useApp();
   const insets = useSafeAreaInsets();
 
   const existing = useMemo(
@@ -68,6 +69,14 @@ export default function CreateOutfitScreen() {
     if (filter === 'All') return items;
     return items.filter((item) => item.attributes.category === filter);
   }, [items, filter]);
+
+  const selectedPieces = useMemo(
+    () =>
+      selectedIds
+        .map((id) => items.find((item) => item.id === id))
+        .filter(Boolean) as typeof items,
+    [selectedIds, items],
+  );
 
   const toggleItem = (id: string) => {
     setSelectedIds((current) =>
@@ -143,6 +152,20 @@ export default function CreateOutfitScreen() {
               Tap pieces to add or remove. Save when it feels right.
             </Text>
           </View>
+
+          {selectedPieces.length > 0 ? (
+            <View style={styles.preview}>
+              <Text variant="caption" color={colors.muted}>
+                Try-on preview
+              </Text>
+              <OutfitAvatar
+                pieces={selectedPieces}
+                avatarUri={user?.avatarUri}
+                heightCm={user?.heightCm}
+                style={styles.previewAvatar}
+              />
+            </View>
+          ) : null}
 
           {items.length === 0 ? (
             <View style={styles.empty}>
@@ -300,6 +323,14 @@ const styles = StyleSheet.create({
   intro: {
     gap: spacing.xs,
     marginBottom: spacing.xs,
+  },
+  preview: {
+    gap: spacing.sm,
+  },
+  previewAvatar: {
+    maxWidth: 280,
+    alignSelf: 'center',
+    width: '70%',
   },
   empty: {
     gap: spacing.md,

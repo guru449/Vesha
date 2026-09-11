@@ -148,6 +148,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       };
       await cloud.upsertProfile(userId, profile);
     }
+    // Merge device-local avatar photo (not in cloud schema yet).
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.user);
+      if (stored) {
+        const localUser = JSON.parse(stored) as UserProfile;
+        if (localUser.avatarUri) {
+          profile = { ...profile, avatarUri: localUser.avatarUri };
+        }
+      }
+    } catch {
+      // ignore corrupt local cache
+    }
     const wardrobe = await cloud.fetchWardrobe(userId);
     userIdRef.current = userId;
     setUser(profile);
@@ -362,12 +374,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!current) return current;
       const next = { ...current, ...patch };
       const uid = userIdRef.current;
+      // Always keep a local copy so avatarUri / prefs survive reload in demo
+      // and cloud sessions (avatar photo is device-local for MVP).
+      void AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
       if (isSupabaseConfigured() && uid) {
         void cloud.upsertProfile(uid, next).catch((error) => {
           console.warn('Profile sync failed', error);
         });
-      } else {
-        void AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
       }
       return next;
     });
