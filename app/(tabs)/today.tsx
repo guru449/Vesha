@@ -25,6 +25,11 @@ import {
 } from '@/lib/stylist';
 import { getTodayOnboarding } from '@/lib/todayOnboarding';
 import {
+  buildInspirationCards,
+  likedVibeLabels,
+  loadDiscoveryLikes,
+} from '@/lib/discovery';
+import {
   formatWeatherSummary,
   loadWeatherForToday,
   type WeatherSnapshot,
@@ -91,6 +96,14 @@ export default function TodayScreen() {
   const [justWornId, setJustWornId] = useState<string | null>(null);
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
+  const [likedLabels, setLikedLabels] = useState<string[]>([]);
+
+  useEffect(() => {
+    void (async () => {
+      const likes = await loadDiscoveryLikes();
+      setLikedLabels(likedVibeLabels(likes, buildInspirationCards()));
+    })();
+  }, []);
 
   const onboarding = useMemo(
     () => getTodayOnboarding(items, occasion),
@@ -108,7 +121,10 @@ export default function TodayScreen() {
         items,
         outfits,
         wearHistory,
-        stylePreferences: user?.stylePreferences ?? [],
+        stylePreferences: [
+          ...(user?.stylePreferences ?? []),
+          ...likedLabels,
+        ],
         weather,
         limit: 3,
         excludeKeys: opts?.excludeKeys ?? excludeKeys,
@@ -122,6 +138,7 @@ export default function TodayScreen() {
       outfits,
       wearHistory,
       user?.stylePreferences,
+      likedLabels,
       weather,
       excludeKeys,
     ],
