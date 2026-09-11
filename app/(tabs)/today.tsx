@@ -486,7 +486,8 @@ export default function TodayScreen() {
                             onPress={() => wearSuggestion(alt)}
                             disabled={Boolean(busyId) || justWornId === alt.id}
                           />
-                        </View>                      </Animated.View>
+                        </View>
+                      </Animated.View>
                     );
                   })}
                 </View>
