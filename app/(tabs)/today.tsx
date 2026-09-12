@@ -18,7 +18,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { useApp } from '@/context/AppContext';
 import { colors, radii, spacing } from '@/constants/theme';
-import type { ClothingItem, StylistSuggestion } from '@/data/types';
+import type { StylistSuggestion } from '@/data/types';
 import {
   diagnoseWardrobeGaps,
   suggestOutfitsForToday,
@@ -49,32 +49,11 @@ function formatTodayLabel(date = new Date()) {
   });
 }
 
-function PieceStrip({ pieces }: { pieces: ClothingItem[] }) {
-  if (!pieces.length) return null;
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.pieceStrip}
-    >
-      {pieces.map((item) => (
-        <Pressable
-          key={item.id}
-          style={styles.pieceChip}
-          onPress={() => router.push(`/item/${item.id}`)}
-        >
-          <Image
-            source={{ uri: item.imageUri }}
-            style={styles.pieceThumb}
-            contentFit="cover"
-          />
-          <Text variant="caption" numberOfLines={1} style={styles.pieceName}>
-            {item.name}
-          </Text>
-        </Pressable>
-      ))}
-    </ScrollView>
-  );
+function weatherIcon(weather: WeatherSnapshot) {
+  if (weather.isRainy) return 'rainy-outline' as const;
+  if (weather.band === 'hot' || weather.band === 'warm') return 'sunny-outline' as const;
+  if (weather.band === 'cold' || weather.band === 'cool') return 'snow-outline' as const;
+  return 'partly-sunny-outline' as const;
 }
 
 export default function TodayScreen() {
@@ -92,7 +71,7 @@ export default function TodayScreen() {
     null,
   );
   const [excludeKeys, setExcludeKeys] = useState<string[]>([]);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [justWornId, setJustWornId] = useState<string | null>(null);
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
@@ -180,9 +159,12 @@ export default function TodayScreen() {
 
   const recentHistory = useMemo(
     () =>
-      [...wearHistory].sort(
-        (a, b) => new Date(b.wornAt).getTime() - new Date(a.wornAt).getTime(),
-      ),
+      [...wearHistory]
+        .sort(
+          (a, b) =>
+            new Date(b.wornAt).getTime() - new Date(a.wornAt).getTime(),
+        )
+        .slice(0, 3),
     [wearHistory],
   );
 
@@ -190,7 +172,7 @@ export default function TodayScreen() {
   const alternates = suggestions?.slice(1, 3) ?? [];
   const primaryPieces = primary ? getItemsByIds(primary.itemIds) : [];
 
-  const onNotFeelingIt = () => {
+  const onAnother = () => {
     if (!suggestions?.length) return;
     const rejected = suggestions.map((s) => comboKey(s.itemIds));
     const nextExclude = [...excludeKeys, ...rejected];
@@ -200,7 +182,7 @@ export default function TodayScreen() {
   };
 
   const wearSuggestion = async (suggestion: StylistSuggestion) => {
-    setBusyId(`wear-${suggestion.id}`);
+    setBusy(true);
     try {
       if (suggestion.sourceOutfitId) {
         await markOutfitWorn(suggestion.sourceOutfitId);
@@ -218,7 +200,7 @@ export default function TodayScreen() {
       }
       setJustWornId(suggestion.id);
     } finally {
-      setBusyId(null);
+      setBusy(false);
     }
   };
 
@@ -229,100 +211,82 @@ export default function TodayScreen() {
     setJustWornId(null);
   };
 
-  const showSetup = onboarding.status !== 'ready';
+  const showSetup = !onboarding.canSuggest;
   const emptySuggestHint = diagnoseWardrobeGaps({ occasion, items });
-  const dateLabel = formatTodayLabel();
+  const worn = primary ? justWornId === primary.id : false;
 
   return (
     <Screen padded={false} scroll>
       <View style={styles.header}>
-        <Animated.View entering={FadeIn.duration(400)}>
-          <Text variant="caption" color={colors.muted}>
-            {dateLabel}
+        <Animated.View entering={FadeIn.duration(400)} style={styles.headerCopy}>
+          <Text variant="caption" color={colors.muted} style={styles.eyebrow}>
+            {formatTodayLabel()}
           </Text>
           <Text variant="hero">Today</Text>
+          <View style={styles.weatherLine}>
+            {weatherLoading ? (
+              <ActivityIndicator size="small" color={colors.muted} />
+            ) : weather ? (
+              <>
+                <Ionicons
+                  name={weatherIcon(weather)}
+                  size={16}
+                  color={colors.accent}
+                />
+                <Text variant="caption" color={colors.inkSoft}>
+                  {formatWeatherSummary(weather)}
+                  {weather.city ? ` · ${weather.city}` : ''}
+                </Text>
+              </>
+            ) : null}
+          </View>
         </Animated.View>
-        <Text variant="body" color={colors.muted}>
-          {onboarding.status === 'empty'
-            ? 'Build a small closet first — then ask what to wear.'
-            : onboarding.status === 'building' && !onboarding.canSuggest
-              ? onboarding.body
-              : 'What should I wear? One look, two backups — tap Wear This when it clicks.'}
-        </Text>
         <Pressable
-          style={styles.calendarLink}
+          accessibilityRole="button"
+          accessibilityLabel="This week"
           onPress={() => router.push('/calendar')}
+          style={styles.iconBtn}
+          hitSlop={8}
         >
-          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          <Text variant="bodyMedium" color={colors.primary}>
-            This week
-          </Text>
+          <Ionicons name="calendar-outline" size={20} color={colors.ink} />
         </Pressable>
       </View>
 
-      <Animated.View
-        entering={FadeInDown.delay(40).duration(400)}
-        style={styles.contextCard}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chipList}
+        contentContainerStyle={styles.chipRow}
       >
-        {weatherLoading ? (
-          <View style={styles.weatherRow}>
-            <ActivityIndicator color={colors.primary} />
-            <Text variant="body" color={colors.muted}>
-              Checking local weather…
-            </Text>
-          </View>
-        ) : weather ? (
-          <View style={styles.weatherRow}>
-            <View style={styles.weatherIcon}>
-              <Ionicons
-                name={
-                  weather.isRainy
-                    ? 'rainy-outline'
-                    : weather.band === 'hot' || weather.band === 'warm'
-                      ? 'sunny-outline'
-                      : weather.band === 'cold' || weather.band === 'cool'
-                        ? 'snow-outline'
-                        : 'partly-sunny-outline'
-                }
-                size={22}
-                color={colors.primary}
-              />
-            </View>
-            <View style={styles.weatherMeta}>
-              <Text variant="bodyMedium">
-                {weather.city || 'Nearby'} · {formatWeatherSummary(weather)}
-              </Text>
-              <Text variant="caption" color={colors.muted}>
-                {weather.source === 'live'
-                  ? 'Live weather shapes today’s picks.'
-                  : 'Mild default — allow location for live weather.'}
-              </Text>
-            </View>
-          </View>
-        ) : null}
-      </Animated.View>
+        {OCCASIONS.map((option) => (
+          <Chip
+            key={option}
+            label={option}
+            selected={occasion === option}
+            onPress={() => setOccasion(option)}
+          />
+        ))}
+      </ScrollView>
 
       {showSetup ? (
         <Animated.View
           entering={FadeInDown.delay(60).duration(400)}
-          style={styles.setupCard}
+          style={styles.card}
         >
           <Text variant="subtitle">{onboarding.headline}</Text>
           <Text variant="body" color={colors.muted}>
-            {onboarding.status === 'empty'
-              ? onboarding.body
-              : `${onboarding.pieceCount} piece${onboarding.pieceCount === 1 ? '' : 's'} in your closet.`}
+            {onboarding.body}
           </Text>
           <View style={styles.checklist}>
             {onboarding.steps.map((step) => (
               <View key={step.id} style={styles.checkRow}>
                 <Ionicons
                   name={step.done ? 'checkmark-circle' : 'ellipse-outline'}
-                  size={20}
+                  size={18}
                   color={step.done ? colors.primary : colors.muted}
                 />
                 <Text
-                  variant="body"
+                  variant="caption"
                   color={step.done ? colors.ink : colors.muted}
                   style={styles.checkLabel}
                 >
@@ -342,129 +306,124 @@ export default function TodayScreen() {
         </Animated.View>
       ) : null}
 
-      <View style={styles.section}>
-        <Text variant="caption" color={colors.muted}>
-          Vibe for today
-        </Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}
-        >
-          {OCCASIONS.map((option) => (
-            <Chip
-              key={option}
-              label={option}
-              selected={occasion === option}
-              onPress={() => setOccasion(option)}
-            />
-          ))}
-        </ScrollView>
-      </View>
-
-      {weatherLoading && onboarding.canSuggest ? (
+      {!showSetup && (weatherLoading || !suggestions) ? (
         <View style={styles.loadingBlock}>
           <ActivityIndicator color={colors.primary} />
-          <Text variant="body" color={colors.muted}>
+          <Text variant="caption" color={colors.muted}>
             Putting a look together…
           </Text>
         </View>
       ) : null}
 
-      {!weatherLoading && onboarding.canSuggest && suggestions ? (
-        <View style={styles.section}>
-          {suggestions.length === 0 ? (
-            <View style={styles.emptySuggest}>
-              <Text variant="bodyMedium">Need a few more pieces</Text>
-              <Text variant="body" color={colors.muted}>
-                {emptySuggestHint.message}
-              </Text>
+      {!showSetup && !weatherLoading && suggestions ? (
+        suggestions.length === 0 ? (
+          <View style={styles.card}>
+            <Text variant="subtitle">Need a few more pieces</Text>
+            <Text variant="body" color={colors.muted}>
+              {emptySuggestHint.message}
+            </Text>
+            <View style={styles.actionRow}>
               <Button
                 label="Add to closet"
                 onPress={() => router.push('/(tabs)/add')}
-                style={styles.emptyBtn}
+                style={styles.grow}
               />
               {excludeKeys.length ? (
                 <Button
-                  label="Reset vibes"
+                  label="Start over"
                   variant="ghost"
                   onPress={() => {
                     setExcludeKeys([]);
                     generate({ excludeKeys: [] });
                   }}
+                  style={styles.grow}
                 />
               ) : null}
             </View>
-          ) : primary ? (
-            <>
-              <Animated.View
-                entering={FadeInDown.duration(420)}
-                style={styles.primaryCard}
-              >
+          </View>
+        ) : primary ? (
+          <>
+            <Animated.View
+              key={primary.id}
+              entering={FadeInDown.duration(380)}
+              style={styles.heroCard}
+            >
+              <View style={styles.heroRow}>
                 <OutfitAvatar
                   pieces={primaryPieces}
                   avatarUri={user?.avatarUri}
                   heightCm={user?.heightCm}
+                  style={styles.heroAvatar}
                 />
-                <View style={styles.avatarHint}>
-                  <Ionicons
-                    name="person-outline"
-                    size={14}
-                    color={colors.primary}
-                  />
-                  <Text variant="caption" color={colors.primary}>
-                    Try-on preview · layered on your avatar
-                  </Text>
-                </View>
-                <View style={styles.cardBody}>
-                  <Text variant="caption" color={colors.primary}>
-                    Today’s pick · {primary.occasion}
-                    {primary.sourceOutfitId ? ' · Saved look' : ''}
-                  </Text>
+                <View style={styles.heroMeta}>
+                  <View style={styles.tag}>
+                    <Ionicons name="sparkles" size={12} color={colors.accent} />
+                    <Text variant="caption" color={colors.accent}>
+                      {primary.sourceOutfitId ? 'Saved look' : 'Today’s pick'}
+                    </Text>
+                  </View>
                   <Text variant="subtitle">{primary.title}</Text>
-                  <Text variant="body" color={colors.muted}>
+                  <Text
+                    variant="caption"
+                    color={colors.muted}
+                    numberOfLines={3}
+                    style={styles.reason}
+                  >
                     {primary.reason}
                   </Text>
-                  <PieceStrip pieces={primaryPieces} />
-                  <View style={styles.primaryActions}>
-                    <Button
-                      label={
-                        busyId === `wear-${primary.id}`
-                          ? 'Logging…'
-                          : justWornId === primary.id
-                            ? 'Logged for today'
-                            : 'Wear This'
-                      }
-                      onPress={() => wearSuggestion(primary)}
-                      disabled={Boolean(busyId) || justWornId === primary.id}
-                    />
-                    <Button
-                      label="Not feeling it"
-                      variant="secondary"
-                      onPress={onNotFeelingIt}
-                      disabled={Boolean(busyId)}
-                    />
+                  <View style={styles.pieceRow}>
+                    {primaryPieces.slice(0, 4).map((item) => (
+                      <Pressable
+                        key={item.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={item.name}
+                        onPress={() => router.push(`/item/${item.id}`)}
+                      >
+                        <Image
+                          source={{ uri: item.imageUri }}
+                          style={styles.pieceThumb}
+                          contentFit="cover"
+                        />
+                      </Pressable>
+                    ))}
                   </View>
                 </View>
-              </Animated.View>
+              </View>
+              <View style={styles.actionRow}>
+                <Button
+                  label={busy ? 'Logging…' : worn ? 'Worn today ✓' : 'Wear this'}
+                  onPress={() => wearSuggestion(primary)}
+                  disabled={busy || worn}
+                  style={styles.grow}
+                />
+                <Button
+                  label="Another"
+                  variant="ghost"
+                  onPress={onAnother}
+                  disabled={busy}
+                  style={styles.another}
+                />
+              </View>
+            </Animated.View>
 
-              {alternates.length ? (
-                <View style={styles.altsBlock}>
-                  <Text variant="caption" color={colors.muted}>
-                    Or switch the vibe
-                  </Text>
+            {alternates.length ? (
+              <View style={styles.section}>
+                <Text variant="caption" color={colors.muted}>
+                  Backups · tap to swap
+                </Text>
+                <View style={styles.altRow}>
                   {alternates.map((alt, index) => {
                     const pieces = getItemsByIds(alt.itemIds);
                     return (
                       <Animated.View
                         key={alt.id}
-                        entering={FadeInDown.delay(80 + index * 60)
-                          .springify()
-                          .damping(18)}
-                        style={styles.altCard}
+                        entering={FadeInDown.delay(80 + index * 60).duration(360)}
+                        style={styles.grow}
                       >
                         <Pressable
-                          style={styles.altRow}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Make ${alt.title} today’s pick`}
+                          style={styles.altCard}
                           onPress={() => promoteAlternate(alt)}
                         >
                           <OutfitAvatar
@@ -474,62 +433,41 @@ export default function TodayScreen() {
                             compact
                             style={styles.altAvatar}
                           />
-                          <View style={styles.altMeta}>
-                            <Text variant="bodyMedium" numberOfLines={1}>
-                              {alt.title}
-                            </Text>
-                            <Text
-                              variant="caption"
-                              color={colors.muted}
-                              numberOfLines={2}
-                            >
-                              {alt.reason}
-                            </Text>
-                            <Text variant="caption" color={colors.primary}>
-                              Make this today’s pick
-                            </Text>
-                          </View>
+                          <Text
+                            variant="caption"
+                            numberOfLines={1}
+                            style={styles.altTitle}
+                          >
+                            {alt.title}
+                          </Text>
                         </Pressable>
-                        <View style={styles.altWearWrap}>
-                          <Button
-                            label={
-                              busyId === `wear-${alt.id}`
-                                ? 'Logging…'
-                                : justWornId === alt.id
-                                  ? 'Logged'
-                                  : 'Wear This'
-                            }
-                            variant="ghost"
-                            onPress={() => wearSuggestion(alt)}
-                            disabled={Boolean(busyId) || justWornId === alt.id}
-                          />
-                        </View>
                       </Animated.View>
                     );
                   })}
                 </View>
-              ) : null}
-            </>
-          ) : null}
-        </View>
+              </View>
+            ) : null}
+          </>
+        ) : null
       ) : null}
 
-      <View style={[styles.section, styles.historySection]}>
-        <View style={styles.historyHeader}>
-          <Text variant="subtitle">Recently worn</Text>
-          <Text variant="caption" color={colors.muted}>
-            One tap on Wear This logs the full look
-          </Text>
-        </View>
-
-        {recentHistory.length === 0 ? (
-          <Text variant="body" color={colors.muted}>
-            {onboarding.status === 'empty'
-              ? 'Once you add pieces and wear a look, it shows up here.'
-              : 'Nothing worn yet — Wear This starts your habit loop.'}
-          </Text>
-        ) : (
-          recentHistory.slice(0, 6).map((entry) => {
+      {recentHistory.length ? (
+        <View style={[styles.section, styles.historySection]}>
+          <View style={styles.historyHeader}>
+            <Text variant="caption" color={colors.muted}>
+              Recently worn
+            </Text>
+            <Pressable
+              onPress={() => router.push('/calendar')}
+              hitSlop={8}
+              accessibilityRole="button"
+            >
+              <Text variant="caption" color={colors.primary}>
+                See all
+              </Text>
+            </Pressable>
+          </View>
+          {recentHistory.map((entry) => {
             const pieces = getItemsByIds(entry.itemIds).slice(0, 3);
             const isItemWear =
               entry.source === 'item' ||
@@ -563,16 +501,20 @@ export default function TodayScreen() {
                     {entry.outfitName}
                   </Text>
                   <Text variant="caption" color={colors.muted}>
-                    {isItemWear ? 'Item · ' : 'Outfit · '}
-                    {entry.occasion ? `${entry.occasion} · ` : ''}
-                    {new Date(entry.wornAt).toLocaleDateString()}
+                    {new Date(entry.wornAt).toLocaleDateString(undefined, {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                    {entry.occasion ? ` · ${entry.occasion}` : ''}
                   </Text>
                 </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.muted} />
               </Pressable>
             );
-          })
-        )}
-      </View>
+          })}
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -581,53 +523,59 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    gap: spacing.sm,
-  },
-  calendarLink: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: spacing.xs,
-    backgroundColor: colors.primaryMist,
-    borderRadius: radii.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  contextCard: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    backgroundColor: colors.primaryMist,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-  },
-  weatherRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: spacing.md,
   },
-  weatherIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.md,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  weatherMeta: {
+  headerCopy: {
     flex: 1,
     gap: 2,
   },
-  setupCard: {
+  eyebrow: {
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    fontSize: 11,
+  },
+  weatherLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 20,
+    marginTop: 2,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: spacing.xs,
+  },
+  chipList: {
+    flexGrow: 0,
+    marginTop: spacing.md,
+  },
+  chipRow: {
+    paddingHorizontal: spacing.lg,
+    paddingRight: spacing.xl,
+    paddingVertical: spacing.xs,
+  },
+  card: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
-    backgroundColor: colors.primaryMist,
+    backgroundColor: colors.surface,
     borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: spacing.md,
     gap: spacing.sm,
   },
   checklist: {
-    gap: spacing.sm,
+    gap: 6,
     marginVertical: spacing.xs,
   },
   checkRow: {
@@ -638,105 +586,99 @@ const styles = StyleSheet.create({
   checkLabel: {
     flex: 1,
   },
+  loadingBlock: {
+    marginTop: spacing.xxl,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  heroCard: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  heroRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  heroAvatar: {
+    width: 148,
+    flexShrink: 0,
+  },
+  heroMeta: {
+    flex: 1,
+    gap: 6,
+    justifyContent: 'center',
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  reason: {
+    lineHeight: 18,
+  },
+  pieceRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 2,
+  },
+  pieceThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  grow: {
+    flex: 1,
+  },
+  another: {
+    flex: 0,
+    minWidth: 112,
+  },
   section: {
     paddingHorizontal: spacing.lg,
     marginTop: spacing.lg,
     gap: spacing.sm,
   },
-  chipRow: {
-    paddingRight: spacing.md,
-    marginBottom: spacing.xs,
-  },
-  loadingBlock: {
-    marginTop: spacing.xl,
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  emptySuggest: {
-    gap: spacing.sm,
-    backgroundColor: colors.primaryMist,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-  },
-  emptyBtn: {
-    alignSelf: 'flex-start',
-    marginTop: spacing.xs,
-  },
-  primaryCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
-  altAvatar: {
-    width: 96,
-    flexShrink: 0,
-  },
-  avatarHint: {
+  altRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-  },
-  cardBody: {
-    padding: spacing.md,
-    gap: 8,
-  },
-  pieceStrip: {
     gap: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  pieceChip: {
-    width: 72,
-    gap: 4,
-  },
-  pieceThumb: {
-    width: 72,
-    height: 72,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surfaceMuted,
-  },
-  pieceName: {
-    color: colors.muted,
-  },
-  primaryActions: {
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  altsBlock: {
-    gap: spacing.sm,
-    marginTop: spacing.md,
   },
   altCard: {
     backgroundColor: colors.surface,
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    overflow: 'hidden',
+    padding: spacing.sm,
+    gap: spacing.sm,
+    alignItems: 'center',
   },
-  altRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
+  altAvatar: {
+    width: '100%',
+    aspectRatio: 1.1,
   },
-  altMeta: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    paddingRight: spacing.md,
-    gap: 4,
-    justifyContent: 'center',
-  },
-  altWearWrap: {
-    paddingHorizontal: spacing.sm,
-    paddingBottom: spacing.sm,
+  altTitle: {
+    alignSelf: 'stretch',
+    textAlign: 'center',
   },
   historySection: {
     paddingBottom: spacing.xxl,
   },
   historyHeader: {
-    gap: 2,
-    marginBottom: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   historyRow: {
     flexDirection: 'row',
@@ -747,6 +689,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.sm,
+    paddingRight: spacing.md,
   },
   historyThumbs: {
     flexDirection: 'row',
