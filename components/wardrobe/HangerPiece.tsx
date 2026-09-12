@@ -106,10 +106,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 10,
     overflow: 'hidden',
     backgroundColor: colors.surfaceMuted,
-    shadowColor: '#000',
-    shadowOpacity: 0.7,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 8 },
+    boxShadow: '0 8px 14px rgba(0,0,0,0.7)',
     elevation: 6,
   },
   image: {

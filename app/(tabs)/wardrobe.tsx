@@ -308,10 +308,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   hangingCompartment: {
+    flex: 1.15,
     minHeight: 158,
   },
   shoeCompartment: {
+    flex: 0.85,
     minHeight: 122,
+    justifyContent: 'flex-end',
   },
   sideTop: {
     flex: 1.35,

@@ -107,6 +107,7 @@ export function HangingRail({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.hug}
         contentContainerStyle={styles.hangingRow}
         keyboardShouldPersistTaps="handled"
       >
@@ -139,6 +140,7 @@ export function ShoeShelf({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.hug}
         contentContainerStyle={styles.shoeRow}
         keyboardShouldPersistTaps="handled"
       >
@@ -250,6 +252,9 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     zIndex: 2,
   },
+  hug: {
+    flexGrow: 0,
+  },
   hangingRow: {
     paddingHorizontal: 10,
     paddingRight: 36,
@@ -273,10 +278,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     overflow: 'hidden',
     backgroundColor: colors.surfaceMuted,
-    shadowColor: '#000',
-    shadowOpacity: 0.7,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 6 },
+    boxShadow: '0 6px 10px rgba(0,0,0,0.7)',
     elevation: 5,
   },
   sideColumn: {
