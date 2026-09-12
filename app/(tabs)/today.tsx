@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -76,6 +76,9 @@ export default function TodayScreen() {
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [likedLabels, setLikedLabels] = useState<string[]>([]);
+  // Logging a wear can add an outfit, which would otherwise re-run the
+  // stylist and swap out the look the user just chose.
+  const keepWornLook = useRef(false);
 
   useEffect(() => {
     void (async () => {
@@ -145,6 +148,7 @@ export default function TodayScreen() {
       setSuggestions(null);
       return;
     }
+    if (keepWornLook.current) return;
     generate({ excludeKeys: [] });
     setExcludeKeys([]);
     setJustWornId(null);
@@ -174,6 +178,7 @@ export default function TodayScreen() {
 
   const onAnother = () => {
     if (!suggestions?.length) return;
+    keepWornLook.current = false;
     const rejected = suggestions.map((s) => comboKey(s.itemIds));
     const nextExclude = [...excludeKeys, ...rejected];
     setExcludeKeys(nextExclude);
@@ -183,6 +188,7 @@ export default function TodayScreen() {
 
   const wearSuggestion = async (suggestion: StylistSuggestion) => {
     setBusy(true);
+    keepWornLook.current = true;
     try {
       if (suggestion.sourceOutfitId) {
         await markOutfitWorn(suggestion.sourceOutfitId);
@@ -207,8 +213,14 @@ export default function TodayScreen() {
   const promoteAlternate = (suggestion: StylistSuggestion) => {
     if (!suggestions) return;
     const rest = suggestions.filter((s) => s.id !== suggestion.id);
+    keepWornLook.current = false;
     setSuggestions([suggestion, ...rest].slice(0, 3));
     setJustWornId(null);
+  };
+
+  const pickOccasion = (next: string) => {
+    keepWornLook.current = false;
+    setOccasion(next);
   };
 
   const showSetup = !onboarding.canSuggest;
@@ -235,7 +247,9 @@ export default function TodayScreen() {
                 />
                 <Text variant="caption" color={colors.inkSoft}>
                   {formatWeatherSummary(weather)}
-                  {weather.city ? ` · ${weather.city}` : ''}
+                  {weather.source === 'live' && weather.city
+                    ? ` · ${weather.city}`
+                    : ''}
                 </Text>
               </>
             ) : null}
@@ -263,7 +277,7 @@ export default function TodayScreen() {
             key={option}
             label={option}
             selected={occasion === option}
-            onPress={() => setOccasion(option)}
+            onPress={() => pickOccasion(option)}
           />
         ))}
       </ScrollView>
