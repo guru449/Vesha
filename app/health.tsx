@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
   },
   previewRow: {
     flexDirection: 'row',

@@ -11,7 +11,7 @@ export default function Root({ children }: { children: ReactNode }) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
-        <meta name="theme-color" content="#F0F3F1" />
+        <meta name="theme-color" content="#050505" />
         <title>Vesha — Digital Wardrobe</title>
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
@@ -27,6 +27,6 @@ html, body, #root {
 }
 body {
   margin: 0;
-  background-color: #DDE5E1;
+  background-color: #161616;
 }
 `;

@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,185 +14,211 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { Chip } from '@/components/ui/Chip';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
-import { ClothingCard } from '@/components/wardrobe/ClothingCard';
-import { useApp } from '@/context/AppContext';
 import {
-  closetBuckets,
-  colors,
-  itemMatchesClosetBucket,
-  radii,
-  spacing,
-  type ClosetBucket,
-} from '@/constants/theme';
+  HangingRail,
+  ShoeShelf,
+  SideShelf,
+} from '@/components/wardrobe/ClosetCompartment';
+import { useApp } from '@/context/AppContext';
+import { closetWood, colors, radii, spacing } from '@/constants/theme';
 import { searchClosetItems } from '@/lib/closetIntel';
+import {
+  closetSortModes,
+  countWears,
+  groupClosetSections,
+  sortClosetSections,
+  type ClosetSortMode,
+} from '@/lib/closetSort';
 
 export default function ClosetScreen() {
-  const { items, user } = useApp();
+  const { items, user, wearHistory } = useApp();
   const [query, setQuery] = useState('');
-  const [bucket, setBucket] = useState<ClosetBucket>('All');
+  const [sortMode, setSortMode] = useState<ClosetSortMode>('color');
 
-  const searchResult = useMemo(() => {
-    const result = searchClosetItems(items, query);
-    if (bucket === 'All') return result;
-    return {
-      ...result,
-      items: result.items.filter((item) =>
-        itemMatchesClosetBucket(item.attributes.category, bucket),
-      ),
-    };
-  }, [items, query, bucket]);
-
-  const filtered = searchResult.items;
-
-  const header = (
-    <View>
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <Animated.View entering={FadeIn.duration(450)} style={styles.headerCopy}>
-            <Text variant="caption" color={colors.muted}>
-              {user?.name ? `${user.name}'s pieces` : 'What do I own?'}
-            </Text>
-            <Text variant="hero">Closet</Text>
-          </Animated.View>
-          <View style={styles.headerActions}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Account"
-              onPress={() => router.push('/(tabs)/profile')}
-              style={styles.iconBtn}
-              hitSlop={8}
-            >
-              <Ionicons name="person-outline" size={20} color={colors.primary} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Add a piece"
-              onPress={() => router.push('/(tabs)/add')}
-              style={[styles.iconBtn, styles.addBtn]}
-              hitSlop={8}
-            >
-              <Ionicons name="add" size={22} color={colors.white} />
-            </Pressable>
-          </View>
-        </View>
-
-        <Text variant="body" color={colors.muted}>
-          {query.trim() && searchResult.headline
-            ? searchResult.headline
-            : `${filtered.length} of ${items.length} pieces · tap a photo to open`}
-        </Text>
-
-        <View style={styles.search}>
-          <Ionicons name="search" size={18} color={colors.muted} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder='Search, occasion, or “goes with…”'
-            placeholderTextColor={colors.muted}
-            style={styles.searchInput}
-          />
-          {query ? (
-            <Pressable onPress={() => setQuery('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={18} color={colors.muted} />
-            </Pressable>
-          ) : null}
-        </View>
-
-        <Pressable
-          style={styles.looksLink}
-          onPress={() => router.push('/(tabs)/outfits')}
-        >
-          <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
-          <Text variant="caption" color={colors.primary}>
-            Saved looks
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={styles.looksLink}
-          onPress={() => router.push('/vibe')}
-        >
-          <Ionicons name="color-wand-outline" size={16} color={colors.primary} />
-          <Text variant="caption" color={colors.primary}>
-            Vibe Match
-          </Text>
-        </Pressable>
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterList}
-        contentContainerStyle={styles.filters}
-        keyboardShouldPersistTaps="handled"
-      >
-        {closetBuckets.map((item) => (
-          <Chip
-            key={item}
-            label={item}
-            selected={bucket === item}
-            onPress={() => setBucket(item)}
-          />
-        ))}
-      </ScrollView>
-    </View>
+  const searchResult = useMemo(
+    () => searchClosetItems(items, query),
+    [items, query],
   );
+
+  const sections = useMemo(() => {
+    const wearCounts = sortMode === 'worn' ? countWears(wearHistory) : undefined;
+    return sortClosetSections(
+      groupClosetSections(searchResult.items),
+      sortMode,
+      wearCounts,
+    );
+  }, [searchResult.items, sortMode, wearHistory]);
+
+  const visibleCount = searchResult.items.length;
+  const isSearching = query.trim().length > 0;
+  const sortHint =
+    sortMode === 'color'
+      ? 'sorted by color ⟶'
+      : sortMode === 'recent'
+        ? 'newest first'
+        : 'most worn first';
 
   return (
     <Screen padded={false}>
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.grid}
+      <ScrollView
+        contentContainerStyle={styles.page}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={header}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text variant="subtitle" center>
-              {items.length === 0 ? 'Your closet is empty' : 'No pieces match'}
-            </Text>
-            <Text variant="body" color={colors.muted} center>
-              {items.length === 0
-                ? 'Tap + to add your first piece.'
-                : query.trim()
-                  ? searchResult.mode === 'combo'
-                    ? 'No strong pairings — try another piece or a simpler search.'
-                    : 'Try a color, piece name, or occasion like wedding / work / date.'
-                  : 'Try another filter or clear your search.'}
-            </Text>
-            {items.length === 0 ? (
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <Animated.View entering={FadeIn.duration(450)} style={styles.headerCopy}>
+              <Text variant="caption" color={colors.muted} style={styles.eyebrow}>
+                {user?.name
+                  ? `${user.name}'s wardrobe · ${items.length} pieces`
+                  : `Your wardrobe · ${items.length} pieces`}
+              </Text>
+              <Text variant="hero">Closet</Text>
+            </Animated.View>
+            <View style={styles.headerActions}>
               <Pressable
-                style={styles.emptyAdd}
+                accessibilityRole="button"
+                accessibilityLabel="Add a piece"
                 onPress={() => router.push('/(tabs)/add')}
+                style={styles.iconBtn}
+                hitSlop={8}
               >
-                <Text variant="bodyMedium" color={colors.primary}>
-                  Add a piece
-                </Text>
+                <Ionicons name="add" size={22} color={colors.ink} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Account"
+                onPress={() => router.push('/(tabs)/profile')}
+                style={styles.iconBtn}
+                hitSlop={8}
+              >
+                <Ionicons name="person-outline" size={20} color={colors.ink} />
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.search}>
+            <Ionicons name="search" size={18} color={colors.muted} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder='Search, occasion, or “goes with…”'
+              placeholderTextColor={colors.muted}
+              style={styles.searchInput}
+            />
+            {query ? (
+              <Pressable
+                onPress={() => setQuery('')}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+              >
+                <Ionicons name="close-circle" size={18} color={colors.muted} />
               </Pressable>
             ) : null}
           </View>
-        }
-        renderItem={({ item, index }) => (
-          <View style={styles.cell}>
-            <ClothingCard item={item} index={index} imageOnly />
+
+          {isSearching ? (
+            <Text variant="caption" color={colors.muted}>
+              {searchResult.headline
+                ? searchResult.headline
+                : `${visibleCount} of ${items.length} pieces match`}
+            </Text>
+          ) : null}
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipList}
+          contentContainerStyle={styles.chips}
+          keyboardShouldPersistTaps="handled"
+        >
+          {closetSortModes.map((mode) => (
+            <Chip
+              key={mode.key}
+              label={mode.key === sortMode ? `Sort: ${mode.label}` : mode.label}
+              selected={mode.key === sortMode}
+              onPress={() => setSortMode(mode.key)}
+            />
+          ))}
+          <Chip label="Saved looks →" onPress={() => router.push('/(tabs)/outfits')} />
+          <Chip label="Vibe Match →" onPress={() => router.push('/vibe')} />
+        </ScrollView>
+
+        <View style={styles.wardrobe}>
+          <LinearGradient
+            colors={[closetWood.frameLight, closetWood.frameDark]}
+            style={styles.frameFill}
+            pointerEvents="none"
+          />
+          <View style={styles.main}>
+            <HangingRail
+              title="Tops"
+              hint={sortHint}
+              items={sections.tops}
+              showSwatch={sortMode === 'color'}
+              style={styles.hangingCompartment}
+              emptyLabel={isSearching ? 'No tops match' : 'No tops yet'}
+            />
+            <HangingRail
+              title="Bottoms"
+              items={sections.bottoms}
+              showSwatch={sortMode === 'color'}
+              style={styles.hangingCompartment}
+              emptyLabel={isSearching ? 'No bottoms match' : 'No bottoms yet'}
+            />
+            <ShoeShelf
+              title="Footwear"
+              items={sections.footwear}
+              style={styles.shoeCompartment}
+              emptyLabel={isSearching ? 'No footwear match' : 'No footwear yet'}
+            />
           </View>
-        )}
-      />
+          <View style={styles.side}>
+            <SideShelf
+              title="Dresses"
+              items={sections.dresses}
+              style={styles.sideTop}
+              emptyLabel={isSearching ? 'No match' : 'None yet'}
+            />
+            <SideShelf
+              title="Extras"
+              items={sections.extras}
+              style={styles.sideBottom}
+              emptyLabel={isSearching ? 'No match' : 'None yet'}
+            />
+          </View>
+        </View>
+
+        {items.length === 0 ? (
+          <View style={styles.emptyCloset}>
+            <Text variant="subtitle" center>
+              Your closet is empty
+            </Text>
+            <Text variant="body" color={colors.muted} center>
+              Tap + on any rail to hang your first piece.
+            </Text>
+          </View>
+        ) : null}
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  page: {
+    flexGrow: 1,
+    paddingBottom: spacing.xl,
+  },
   header: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
     gap: spacing.sm,
   },
   headerTop: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     gap: spacing.md,
   },
@@ -200,11 +226,16 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  eyebrow: {
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    fontSize: 11,
+  },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
   },
   iconBtn: {
     width: 40,
@@ -212,10 +243,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primaryMist,
-  },
-  addBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   search: {
     marginTop: spacing.xs,
@@ -227,52 +257,73 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: spacing.md,
-    minHeight: 48,
+    minHeight: 46,
   },
   searchInput: {
     flex: 1,
     fontFamily: 'PlusJakartaSans_400Regular',
     fontSize: 15,
     color: colors.ink,
-    paddingVertical: 12,
+    paddingVertical: 11,
   },
-  looksLink: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-  },
-  filterList: {
+  chipList: {
     flexGrow: 0,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
+    marginTop: spacing.sm,
   },
-  filters: {
-    paddingHorizontal: spacing.lg,
+  chips: {
+    paddingHorizontal: spacing.md,
     paddingRight: spacing.xl,
     alignItems: 'center',
-    paddingBottom: spacing.sm,
+    paddingVertical: spacing.xs,
   },
-  grid: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
+  wardrobe: {
+    flexGrow: 1,
+    marginTop: spacing.md,
+    marginHorizontal: spacing.md,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+    borderWidth: 3,
+    borderBottomWidth: 0,
+    borderColor: closetWood.edge,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    gap: 10,
+    padding: 12,
+    paddingBottom: 0,
   },
-  row: {
-    gap: spacing.md,
-    marginBottom: spacing.md,
+  frameFill: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
-  cell: {
+  main: {
     flex: 1,
+    gap: 8,
+    minWidth: 0,
   },
-  empty: {
-    paddingTop: spacing.xxl,
-    gap: spacing.sm,
-    alignItems: 'center',
+  side: {
+    width: 78,
+    gap: 8,
   },
-  emptyAdd: {
-    marginTop: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+  hangingCompartment: {
+    minHeight: 158,
+  },
+  shoeCompartment: {
+    minHeight: 122,
+  },
+  sideTop: {
+    flex: 1.35,
+    minHeight: 220,
+  },
+  sideBottom: {
+    flex: 1,
+    minHeight: 130,
+  },
+  emptyCloset: {
+    paddingTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.xs,
   },
 });

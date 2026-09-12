@@ -32,7 +32,7 @@ export function Screen({
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={['#E7F0EC', colors.bg, '#F5F2EE']}
+        colors={['#0B0B0B', colors.bg, '#000000']}
         locations={[0, 0.45, 1]}
         style={StyleSheet.absoluteFill}
       />

@@ -1,29 +1,43 @@
 /**
- * Vesha design system — soft sage closet aesthetic.
- * Calm, fashion-friendly, easy to scan on mobile.
+ * Vesha design system — black closet aesthetic.
+ * Deep black surfaces, warm ivory ink, sage accent; the whole app shares the
+ * palette with the wardrobe view so garments read like they hang in a real closet.
  */
 export const colors = {
-  bg: '#F0F3F1',
-  bgElevated: '#F7F9F8',
-  surface: '#FFFFFF',
-  surfaceMuted: '#E8EEEB',
-  ink: '#1C2B26',
-  inkSoft: '#3D4F48',
-  muted: '#6B7C75',
-  border: '#D9E2DD',
-  borderStrong: '#B8C7BF',
-  primary: '#2F6F5E',
-  primaryDark: '#245648',
-  primarySoft: '#D5E8E1',
-  primaryMist: '#EAF3EF',
-  accent: '#C17A52',
-  accentSoft: '#F3E4DA',
-  danger: '#B85C5C',
-  dangerSoft: '#F5E3E3',
-  success: '#3E8B6E',
-  overlay: 'rgba(28, 43, 38, 0.45)',
+  bg: '#050505',
+  bgElevated: '#0D0D0D',
+  surface: '#141414',
+  surfaceMuted: '#1E1E1E',
+  ink: '#F4F2EC',
+  inkSoft: '#C9CCC7',
+  muted: '#8A8F8B',
+  border: '#262626',
+  borderStrong: '#3A3A3A',
+  primary: '#3F9478',
+  primaryDark: '#2F7A62',
+  primarySoft: '#1B3A31',
+  primaryMist: '#122620',
+  accent: '#D99A70',
+  accentSoft: '#3A2A1F',
+  danger: '#E07A7A',
+  dangerSoft: '#3A2020',
+  success: '#5CB08E',
+  overlay: 'rgba(0, 0, 0, 0.6)',
   white: '#FFFFFF',
-  shadow: 'rgba(28, 43, 38, 0.08)',
+  shadow: 'rgba(0, 0, 0, 0.5)',
+} as const;
+
+/** Wardrobe frame tones used by the Closet tab (dark wood + brass rail). */
+export const closetWood = {
+  frameLight: '#2A211B',
+  frameDark: '#1B1613',
+  edge: '#3B2E25',
+  shelfLight: '#5A4636',
+  cavity: '#0B0A09',
+  railLight: '#D7C4A3',
+  railDark: '#8C7350',
+  hanger: '#C9B695',
+  label: '#9A8F84',
 } as const;
 
 export const spacing = {

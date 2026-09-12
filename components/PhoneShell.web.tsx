@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#DDE5E1',
+    backgroundColor: '#161616',
     paddingVertical: 24,
   },
   device: {
@@ -48,6 +48,6 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#C5D0CA',
+    borderColor: '#333333',
   },
 });
